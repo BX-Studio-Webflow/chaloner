@@ -10,6 +10,7 @@ interface FormElements {
   successMessage: HTMLElement;
   errorMessage: HTMLElement;
   submitButton: HTMLInputElement;
+  phoneInput: HTMLInputElement;
 }
 
 interface FormData {
@@ -32,11 +33,19 @@ interface ApiResponse {
   error?: string;
 }
 
+// TypeScript declarations for intl-tel-input
+declare global {
+  interface Window {
+    intlTelInput: any;
+  }
+}
+
 class JobApplicationForm {
   private elements!: FormElements;
   private uploadedFile: File | null = null;
   private jobId: string | null = null;
   private originalButtonText: string = "";
+  private phoneInputInstance: any = null;
 
   private readonly ALLOWED_FILE_TYPES = [
     "application/pdf",
@@ -76,6 +85,9 @@ class JobApplicationForm {
     const submitButton = form?.querySelector(
       'input[type="submit"]'
     ) as HTMLInputElement;
+    const phoneInput = document.getElementById(
+      "Phone-Number"
+    ) as HTMLInputElement;
 
     // Validate required elements exist
     if (
@@ -85,7 +97,8 @@ class JobApplicationForm {
       !uploadSection ||
       !successMessage ||
       !errorMessage ||
-      !submitButton
+      !submitButton ||
+      !phoneInput
     ) {
       throw new Error("Required form elements not found");
     }
@@ -99,10 +112,14 @@ class JobApplicationForm {
       successMessage,
       errorMessage,
       submitButton,
+      phoneInput,
     };
 
     this.originalButtonText = submitButton.value;
     this.jobId = this.getJobIdFromURL();
+
+    // Initialize international phone input
+    this.initializePhoneInput();
   }
 
   /**
@@ -130,6 +147,49 @@ class JobApplicationForm {
     this.elements.fileTemplate.style.display = "none";
     this.hideAllMessages();
     this.injectStyles();
+  }
+
+  /**
+   * Initialize international phone input
+   */
+  private initializePhoneInput(): void {
+    // Check if intlTelInput is available
+    if (typeof window.intlTelInput === "undefined") {
+      console.warn(
+        "intlTelInput library not loaded. Phone validation will be basic."
+      );
+      return;
+    }
+
+    try {
+      this.phoneInputInstance = window.intlTelInput(this.elements.phoneInput, {
+        initialCountry: "gb", // Default to UK since user is in Hatfield, England
+        preferredCountries: ["gb", "us", "ca", "au"],
+        separateDialCode: true,
+        autoPlaceholder: "aggressive",
+        utilsScript:
+          "https://cdn.jsdelivr.net/npm/intl-tel-input@25.10.12/build/js/utils.js",
+        validationNumberType: "MOBILE",
+      });
+
+      // Add event listener for country change
+      this.elements.phoneInput.addEventListener("countrychange", () => {
+        this.clearPhoneError();
+      });
+    } catch (error) {
+      console.error("Failed to initialize intl-tel-input:", error);
+    }
+  }
+
+  /**
+   * Clear phone input error styling
+   */
+  private clearPhoneError(): void {
+    this.elements.phoneInput.classList.remove("error");
+    const phoneContainer = this.elements.phoneInput.closest(
+      ".roles-application-form_input_wrap"
+    );
+    phoneContainer?.classList.remove("error");
   }
 
   /**
@@ -517,6 +577,15 @@ class JobApplicationForm {
       "input",
       this.handleInputChange.bind(this)
     );
+
+    if (this.phoneInputInstance) {
+      try {
+        this.phoneInputInstance.destroy();
+        this.phoneInputInstance = null;
+      } catch (error) {
+        console.warn("Error destroying phone input instance:", error);
+      }
+    }
 
     // Clean up uploaded file display
     const uploadedFileElement = document.querySelector(".uploaded-file");
