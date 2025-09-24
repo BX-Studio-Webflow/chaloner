@@ -25,8 +25,11 @@ interface JobElements {
   roleTemplate: HTMLElement | null;
   rolesSection: HTMLElement | null;
   descriptionSection: HTMLElement | null;
+  rolesLoader: HTMLElement | null;
+  backToRolesButton: HTMLElement | null;
   applicationSection: HTMLElement | null;
-  toApplicationSection: HTMLElement | null;
+  toApplicationSection: HTMLAnchorElement | null;
+  resumeHref: string | null;
   descTitle: HTMLElement | null;
   descCompany: HTMLElement | null;
   descLocation: HTMLElement | null;
@@ -76,12 +79,22 @@ class JobListingManager {
       descriptionSection: document.querySelector<HTMLElement>(
         '[dev-target="description-section"]'
       ),
+      backToRolesButton: document.querySelector<HTMLElement>(
+        '[dev-target="back-to-roles"]'
+      ),
+      rolesLoader: document.querySelector<HTMLElement>(
+        '[dev-target="roles-loader"]'
+      ),
       applicationSection: document.querySelector<HTMLElement>(
         '[dev-target="application-section"]'
       ),
-      toApplicationSection: document.querySelector<HTMLElement>(
+      toApplicationSection: document.querySelector<HTMLAnchorElement>(
         '[dev-target="to-application-section"]'
       ),
+      resumeHref:
+        document.querySelector<HTMLAnchorElement>(
+          '[dev-target="to-application-section"]'
+        )?.href || null,
 
       // Description elements
       descTitle: document.querySelector<HTMLElement>(
@@ -134,7 +147,13 @@ class JobListingManager {
     // Navigate to application section
     if (this.elements.toApplicationSection) {
       this.elements.toApplicationSection.addEventListener("click", () => {
-        this.showApplicationSection();
+        // this.showApplicationSection();
+      });
+    }
+    // Back to roles button
+    if (this.elements.backToRolesButton) {
+      this.elements.backToRolesButton.addEventListener("click", () => {
+        this.showRolesSection();
       });
     }
 
@@ -180,6 +199,10 @@ class JobListingManager {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       this.showError("Failed to load jobs: " + errorMessage);
+    } finally {
+      if (this.elements.rolesLoader) {
+        this.elements.rolesLoader.classList.add("hide");
+      }
     }
   }
 
@@ -310,6 +333,16 @@ class JobListingManager {
     });
   }
 
+  private showRolesSection(): void {
+    if (this.elements.rolesSection) {
+      this.elements.rolesSection.classList.remove("hide");
+    }
+    if (this.elements.descriptionSection)
+      this.elements.descriptionSection.classList.add("hide");
+    if (this.elements.applicationSection)
+      this.elements.applicationSection.classList.add("hide");
+  }
+
   private showJobDescription(): void {
     if (!this.currentJob || !this.elements.descriptionSection) return;
 
@@ -322,6 +355,8 @@ class JobListingManager {
       this.elements.descLocation.textContent = this.currentJob.location;
     if (this.elements.descContent)
       this.elements.descContent.innerHTML = this.currentJob.description;
+    if (this.elements.toApplicationSection)
+      this.elements.toApplicationSection.href = `${this.elements.resumeHref}?jobId=${this.currentJob.id}`;
 
     // Show description section
     this.elements.descriptionSection.classList.remove("hide");
@@ -438,6 +473,7 @@ class JobListingManager {
 
   protected showLoading(message: string = "Loading..."): void {
     if (this.elements.roleListWrap) {
+      this.elements.rolesLoader?.classList.remove("hide");
       this.elements.roleListWrap.innerHTML = `<div class="loading">${message}</div>`;
     }
   }
