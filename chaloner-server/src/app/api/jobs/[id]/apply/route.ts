@@ -12,15 +12,22 @@ export async function POST(
     const BEARER_AUTH_HEADER = "Bearer " + process.env.BEARER_AUTH!;
 
     const formData = await request.formData();
-    const email = formData.get("email") as string;
-    const name = formData.get("name") as string;
-    const phone = formData.get("phone") as string;
-    const resume = formData.get("resume") as File;
+    const email = formData.get("Email") as string;
+    const name =
+      (formData.get("First-Name") as string) +
+      " " +
+      (formData.get("Last-Name") as string);
+    const phone = formData.get("Phone-Number") as string;
+    const linkedin = formData.get("Linkedin-URL") as string;
+    const resume = formData.get("Resume") as File;
+
+    console.log({ email, name, phone, linkedin, resume });
 
     const loxoFormData = new FormData();
     loxoFormData.append("email", email);
     loxoFormData.append("name", name);
     loxoFormData.append("phone", phone);
+    loxoFormData.append("linkedin", linkedin);
     loxoFormData.append("resume", resume);
 
     const response = await fetch(baseURL.toString(), {
