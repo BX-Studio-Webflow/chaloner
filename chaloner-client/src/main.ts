@@ -27,6 +27,7 @@ interface JobElements {
   descriptionSection: HTMLElement | null;
   rolesLoader: HTMLElement | null;
   backToRolesButton: HTMLElement | null;
+  backToDescriptionButton: HTMLElement | null;
   applicationSection: HTMLElement | null;
   toApplicationSection: HTMLAnchorElement | null;
   resumeHref: string | null;
@@ -34,11 +35,6 @@ interface JobElements {
   descCompany: HTMLElement | null;
   descLocation: HTMLElement | null;
   descContent: HTMLElement | null;
-  applicationForm: HTMLFormElement | null;
-  fileUpload: HTMLInputElement | null;
-  fileWrap: HTMLElement | null;
-  checkbox: HTMLElement | null;
-  checkboxInput: HTMLInputElement | null;
 }
 
 type SortOrder = "asc" | "desc";
@@ -82,6 +78,9 @@ class JobListingManager {
       backToRolesButton: document.querySelector<HTMLElement>(
         '[dev-target="back-to-roles"]'
       ),
+      backToDescriptionButton: document.querySelector<HTMLElement>(
+        '[dev-target="back-to-description"]'
+      ),
       rolesLoader: document.querySelector<HTMLElement>(
         '[dev-target="roles-loader"]'
       ),
@@ -109,22 +108,6 @@ class JobListingManager {
       descContent: document.querySelector<HTMLElement>(
         '[dev-target="description"]'
       ),
-
-      // Form elements
-      applicationForm: document.querySelector<HTMLFormElement>(
-        ".roles-application-form_wrap"
-      ),
-      fileUpload: document.querySelector<HTMLInputElement>(
-        ".roles-application-form_file_input"
-      ),
-      fileWrap: document.querySelector<HTMLElement>(
-        ".roles-application-form_file_wrap"
-      ),
-      checkbox: document.querySelector<HTMLElement>(
-        ".roles-application-form_checkbox"
-      ),
-      checkboxInput:
-        document.querySelector<HTMLInputElement>('[name="consent"]'),
     };
   }
 
@@ -147,7 +130,7 @@ class JobListingManager {
     // Navigate to application section
     if (this.elements.toApplicationSection) {
       this.elements.toApplicationSection.addEventListener("click", () => {
-        // this.showApplicationSection();
+        this.showApplicationSection();
       });
     }
     // Back to roles button
@@ -156,29 +139,10 @@ class JobListingManager {
         this.showRolesSection();
       });
     }
-
-    // Form submission
-    if (this.elements.applicationForm) {
-      this.elements.applicationForm.addEventListener("submit", (e: Event) => {
-        this.handleFormSubmission(e);
-      });
-    }
-
-    // File upload styling
-    if (this.elements.fileWrap && this.elements.fileUpload) {
-      this.elements.fileWrap.addEventListener("click", () => {
-        this.elements.fileUpload?.click();
-      });
-
-      this.elements.fileUpload.addEventListener("change", (e: Event) => {
-        this.handleFileUpload(e);
-      });
-    }
-
-    // Custom checkbox
-    if (this.elements.checkbox && this.elements.checkboxInput) {
-      this.elements.checkbox.addEventListener("click", () => {
-        this.toggleCheckbox();
+    // Back to description button
+    if (this.elements.backToDescriptionButton) {
+      this.elements.backToDescriptionButton.addEventListener("click", () => {
+        this.showJobDescription();
       });
     }
   }
@@ -361,16 +325,12 @@ class JobListingManager {
     // Show description section
     this.elements.descriptionSection.classList.remove("hide");
     this.elements.rolesSection?.classList.add("hide");
-    // this.elements.descriptionSection.style.display = "block";
-    // this.elements.descriptionSection.scrollIntoView({ behavior: "smooth" });
   }
 
   private showApplicationSection(): void {
     if (this.elements.applicationSection) {
       this.elements.descriptionSection?.classList.add("hide");
       this.elements.applicationSection.classList.remove("hide");
-      // this.elements.applicationSection.style.display = "block";
-      // this.elements.applicationSection.scrollIntoView({ behavior: "smooth" });
     }
   }
 
@@ -429,45 +389,10 @@ class JobListingManager {
       console.log({ result });
       this.showSuccess("Application submitted successfully!");
       form.reset();
-      this.resetCheckbox();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       this.showError("Failed to submit application: " + errorMessage);
-    }
-  }
-
-  private handleFileUpload(e: Event): void {
-    const input = e.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (file && this.elements.fileWrap) {
-      const fileWrapText =
-        this.elements.fileWrap.querySelector<HTMLElement>("div:last-child");
-      if (fileWrapText) {
-        fileWrapText.textContent = `Selected: ${file.name}`;
-      }
-    }
-  }
-
-  private toggleCheckbox(): void {
-    if (!this.elements.checkboxInput || !this.elements.checkbox) return;
-
-    const isChecked = this.elements.checkboxInput.checked;
-    this.elements.checkboxInput.checked = !isChecked;
-
-    if (!isChecked) {
-      this.elements.checkbox.classList.add("checked");
-    } else {
-      this.elements.checkbox.classList.remove("checked");
-    }
-  }
-
-  resetCheckbox(): void {
-    if (this.elements.checkboxInput) {
-      this.elements.checkboxInput.checked = false;
-    }
-    if (this.elements.checkbox) {
-      this.elements.checkbox.classList.remove("checked");
     }
   }
 
@@ -667,7 +592,6 @@ class EnhancedJobListingManager extends JobListingManager {
       console.log({ result });
       this.showSuccess("Application submitted successfully!");
       form.reset();
-      this.resetCheckbox();
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
