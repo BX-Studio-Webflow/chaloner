@@ -205,9 +205,36 @@ class UnifiedJobApplicationSystem {
       this.setupInitialState();
       this.injectStyles();
       await this.loadJobs();
+
+      // Check for jobId in URL and load specific job if present
+      await this.handleInitialJobLoad();
     } catch (error) {
       console.error("Failed to initialize job application system:", error);
       this.showError("System initialization failed. Please refresh the page.");
+    }
+  }
+
+  private async handleInitialJobLoad(): Promise<void> {
+    const urlJobId = this.getJobIdFromURL();
+
+    if (urlJobId) {
+      const jobIdNumber = parseInt(urlJobId, 10);
+
+      if (!isNaN(jobIdNumber)) {
+        try {
+          // Load the specific job details
+          await this.loadSpecificJobDetails(jobIdNumber);
+        } catch (error) {
+          console.error("Failed to load initial job from URL:", error);
+          this.showError(
+            `Failed to load job ${urlJobId}. Showing all jobs instead.`
+          );
+          this.showRolesSection();
+        }
+      } else {
+        console.warn("Invalid jobId in URL:", urlJobId);
+        this.showRolesSection();
+      }
     }
   }
 
@@ -388,6 +415,31 @@ class UnifiedJobApplicationSystem {
         this.showRolesSection();
       }
     });
+
+    // Handle browser back/forward buttons
+    window.addEventListener("popstate", (event) => {
+      this.handleBrowserNavigation(event);
+    });
+  }
+
+  private async handleBrowserNavigation(event: PopStateEvent): Promise<void> {
+    const jobId = this.getJobIdFromURL();
+
+    if (jobId && event.state?.jobId) {
+      // User navigated back to a job description
+      const jobIdNumber = parseInt(jobId, 10);
+      if (!isNaN(jobIdNumber)) {
+        try {
+          await this.loadSpecificJobDetails(jobIdNumber);
+        } catch (error) {
+          console.error("Failed to load job from browser navigation:", error);
+          this.showRolesSection();
+        }
+      }
+    } else {
+      // User navigated back to job listings
+      this.showRolesSection();
+    }
   }
 
   private bindFormEvents(): void {
@@ -451,15 +503,7 @@ class UnifiedJobApplicationSystem {
   ): Promise<void> {
     try {
       button.classList.add("loading");
-      const response = await fetch(`http://localhost:3000/api/jobs/${jobId}`);
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      this.currentJob = (await response.json()) as JobDetails;
-      this.jobId = jobId.toString();
-      this.showJobDescription();
+      await this.loadSpecificJobDetails(jobId);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -467,6 +511,21 @@ class UnifiedJobApplicationSystem {
     } finally {
       button.classList.remove("loading");
     }
+  }
+
+  private async loadSpecificJobDetails(jobId: number): Promise<void> {
+    const response = await fetch(`http://localhost:3000/api/jobs/${jobId}`);
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error(`Job with ID ${jobId} not found`);
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    this.currentJob = (await response.json()) as JobDetails;
+    this.jobId = jobId.toString();
+    this.showJobDescription();
   }
 
   private filterJobs(searchTerm: string): void {
@@ -575,6 +634,9 @@ class UnifiedJobApplicationSystem {
     if (this.jobElements.applicationSection) {
       this.jobElements.applicationSection.classList.add("hide");
     }
+
+    // Remove jobId from URL when going back to roles list
+    this.removeJobIdFromUrl();
   }
 
   private showJobDescription(): void {
@@ -593,6 +655,9 @@ class UnifiedJobApplicationSystem {
       this.jobElements.toApplicationSection.href = `${this.jobElements.resumeHref}?jobId=${this.currentJob.id}`;
     }
 
+    // Update URL with jobId parameter
+    this.updateUrlWithJobId(this.currentJob.id);
+
     // Show description section
     this.jobElements.descriptionSection.classList.remove("hide");
     this.jobElements.rolesSection?.classList.add("hide");
@@ -605,6 +670,28 @@ class UnifiedJobApplicationSystem {
       this.jobElements.applicationSection.classList.remove("hide");
       this.jobElements.rolesSection?.classList.add("hide");
     }
+
+    // Keep jobId in URL when navigating to application section
+    if (this.currentJob) {
+      this.updateUrlWithJobId(this.currentJob.id);
+    }
+  }
+
+  // ===== URL MANAGEMENT =====
+  private updateUrlWithJobId(jobId: number): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set("jobId", jobId.toString());
+
+    // Use pushState to update URL without page reload
+    window.history.pushState({ jobId }, "", url.toString());
+  }
+
+  private removeJobIdFromUrl(): void {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("jobId");
+
+    // Use pushState to update URL without page reload
+    window.history.pushState({}, "", url.toString());
   }
 
   // ===== FILE HANDLING =====
@@ -789,9 +876,6 @@ class UnifiedJobApplicationSystem {
   private handleSuccessfulSubmission(): void {
     this.showSuccess("Application submitted successfully!");
     this.formElements.form?.reset();
-    document
-      .querySelector('input[name="consent"]')
-      ?.classList.remove("w--redirected-checked");
     this.removeUploadedFile();
   }
 
@@ -996,6 +1080,16 @@ class UnifiedJobApplicationSystem {
       this.jobElements.roleSearch.value = "";
       this.filterJobs("");
     }
+  }
+
+  public async loadJobFromUrl(jobId: string | number): Promise<void> {
+    const jobIdNumber = typeof jobId === "string" ? parseInt(jobId, 10) : jobId;
+
+    if (isNaN(jobIdNumber)) {
+      throw new Error("Invalid job ID");
+    }
+
+    await this.loadSpecificJobDetails(jobIdNumber);
   }
 
   public reinitialize(): void {
