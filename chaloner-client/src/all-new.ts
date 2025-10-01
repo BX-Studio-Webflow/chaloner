@@ -21,6 +21,10 @@ interface ApplicationData {
   linkedinUrl: string;
   consent: boolean;
   resume?: File | null;
+  coverLetter?: File | null;
+  additionalFiles?: File[] | null;
+  desiredSalary: string;
+  desiredAdditionalCompensation: string;
 }
 
 interface JobElements {
@@ -44,10 +48,11 @@ interface JobElements {
 
 interface FormElements {
   form: HTMLFormElement;
-  fileInput: HTMLInputElement;
-  fileTemplate: HTMLElement;
-  fileContainer: HTMLElement;
-  uploadSection: HTMLElement;
+  // fileInput: HTMLInputElement;
+  // fileTemplate: HTMLElement;
+  // fileContainer: HTMLElement;
+  // uploadSection: HTMLElement;
+  fileInputSections: NodeListOf<HTMLElement>;
   successMessage: HTMLElement;
   errorMessage: HTMLElement;
   submitButton: HTMLInputElement;
@@ -178,7 +183,9 @@ class UnifiedJobApplicationSystem {
 
   // Application form properties
   private formElements!: FormElements;
-  private uploadedFile: File | null = null;
+  private uploadedResumeFile: File | null = null;
+  private uploadedCoverLetterFile: File | null = null;
+  private uploadedAdditionalFiles: File[] = [];
   private jobId: string | null = null;
   private originalButtonText: string = "";
   private phoneInputInstance: any = null;
@@ -323,12 +330,15 @@ class UnifiedJobApplicationSystem {
 
     this.formElements = {
       form,
-      fileInput,
-      fileTemplate: fileTemplate || document.createElement("div"),
-      fileContainer:
-        (fileTemplate?.parentElement as HTMLElement) ||
-        document.createElement("div"),
-      uploadSection: uploadSection || document.createElement("div"),
+      fileInputSections: document.querySelectorAll(
+        '[dev-target="files-section"]'
+      ),
+      // fileInput,
+      // fileTemplate: fileTemplate || document.createElement("div"),
+      // fileContainer:
+      //   (fileTemplate?.parentElement as HTMLElement) ||
+      //   document.createElement("div"),
+      // uploadSection: uploadSection || document.createElement("div"),
       successMessage: successMessage || document.createElement("div"),
       errorMessage: errorMessage || document.createElement("div"),
       submitButton,
@@ -445,13 +455,31 @@ class UnifiedJobApplicationSystem {
   private bindFormEvents(): void {
     if (!this.formElements.form) return;
 
-    // File input change
-    if (this.formElements.fileInput) {
-      this.formElements.fileInput.addEventListener(
-        "change",
-        this.handleFileInputChange.bind(this)
+    // File input sections click to trigger file input
+    this.formElements.fileInputSections.forEach((section) => {
+      const sectionInput = section.querySelector('input[type="file"]');
+      const sectionFileTemplate = section.querySelector<HTMLElement>(
+        "[dev-target=file-item-template]"
       );
-    }
+      const sectionFileTemplateContainer = sectionFileTemplate?.parentElement;
+      const sectionUploadSection = section.querySelector<HTMLElement>(
+        ".roles-application-form_file_contain"
+      );
+      if (
+        sectionInput &&
+        sectionUploadSection &&
+        sectionFileTemplateContainer
+      ) {
+        section.addEventListener("change", (event) =>
+          this.handleFileInputChange(
+            event,
+            sectionFileTemplate,
+            sectionUploadSection,
+            sectionFileTemplateContainer
+          )
+        );
+      }
+    });
 
     // Form submission
     this.formElements.form.addEventListener(
@@ -467,8 +495,13 @@ class UnifiedJobApplicationSystem {
   }
 
   private setupInitialState(): void {
-    if (this.formElements.fileTemplate) {
-      this.formElements.fileTemplate.style.display = "none";
+    if (this.formElements.fileInputSections) {
+      this.formElements.fileInputSections.forEach((section) => {
+        const fileTemplate = section.querySelector<HTMLElement>(
+          "[dev-target=file-item-template]"
+        );
+        if (fileTemplate) fileTemplate.style.display = "none";
+      });
     }
     this.hideAllMessages();
   }
@@ -700,16 +733,41 @@ class UnifiedJobApplicationSystem {
     return urlParams.get("jobId");
   }
 
-  private handleFileInputChange(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const file = target.files?.[0];
+  private handleFileInputChange(
+    event: Event,
+    sectionFileTemplate: HTMLElement,
+    sectionUploadSection: HTMLElement,
+    sectionFileTemplateContainer: HTMLElement
+  ): void {
+    const fileInput = event.target as HTMLInputElement;
+    const inputName = fileInput.name;
+    // const file = fileInput.files?.[0];
+    const files = fileInput.files;
 
-    if (file) {
-      this.handleFileUpload(file);
+    if (files && files.length > 0) {
+      Array.from(files)
+        .slice(0, 3)
+        .forEach((file) => {
+          this.handleFileUpload(
+            fileInput,
+            file,
+            inputName,
+            sectionFileTemplate,
+            sectionUploadSection,
+            sectionFileTemplateContainer
+          );
+        });
     }
   }
 
-  private handleFileUpload(file: File): void {
+  private handleFileUpload(
+    fileInput: HTMLInputElement,
+    file: File,
+    inputName: string,
+    sectionFileTemplate: HTMLElement,
+    sectionUploadSection: HTMLElement,
+    sectionFileTemplateContainer: HTMLElement
+  ): void {
     const validation = FileValidator.validateFile(file);
 
     if (!validation.isValid) {
@@ -717,19 +775,55 @@ class UnifiedJobApplicationSystem {
       return;
     }
 
-    this.uploadedFile = file;
-    this.displayUploadedFile(file);
+    if (inputName === "Resume") {
+      this.uploadedResumeFile = file;
+    } else if (inputName === "cover_letter") {
+      this.uploadedCoverLetterFile = file;
+    } else {
+      if (this.uploadedAdditionalFiles.length < 3) {
+        this.uploadedAdditionalFiles.push(file);
+        if (this.uploadedAdditionalFiles.length === 3) {
+          console.log("hi", sectionUploadSection);
+          sectionUploadSection.classList.add("hide");
+          console.log("hi", sectionUploadSection);
+        }
+      } else {
+        this.showError("You can only upload up to 3 additional files.");
+        return;
+      }
+    }
+    this.displayUploadedFile(
+      fileInput,
+      file,
+      sectionFileTemplate,
+      sectionUploadSection,
+      sectionFileTemplateContainer
+    );
   }
 
-  private displayUploadedFile(file: File): void {
-    if (!this.formElements.fileTemplate || !this.formElements.uploadSection)
+  private displayUploadedFile(
+    fileInput: HTMLInputElement,
+    file: File,
+    sectionFileTemplate: HTMLElement,
+    sectionUploadSection: HTMLElement,
+    sectionFileTemplateContainer: HTMLElement
+  ): void {
+    if (
+      !sectionFileTemplate ||
+      !sectionUploadSection ||
+      !sectionFileTemplateContainer
+    )
       return;
+    const hasMultiple = fileInput.hasAttribute("multiple");
+    if (hasMultiple && this.uploadedAdditionalFiles.length < 3) {
+      sectionUploadSection.classList.remove("hide");
+      // sectionUploadSection.style.display = "flex";
+    } else {
+      sectionUploadSection.classList.add("hide");
+      // sectionUploadSection.style.display = "none";
+    }
 
-    this.formElements.uploadSection.style.display = "none";
-
-    const fileItem = this.formElements.fileTemplate.cloneNode(
-      true
-    ) as HTMLElement;
+    const fileItem = sectionFileTemplate.cloneNode(true) as HTMLElement;
     fileItem.style.display = "flex";
     fileItem.classList.add("uploaded-file");
 
@@ -742,28 +836,52 @@ class UnifiedJobApplicationSystem {
       '[dev-target="file-remove-button"]'
     ) as HTMLElement;
     if (removeButton) {
-      removeButton.addEventListener(
-        "click",
-        this.removeUploadedFile.bind(this)
+      removeButton.addEventListener("click", (e) =>
+        this.removeUploadedFile(
+          file,
+          fileInput,
+          e.target as HTMLElement,
+          sectionUploadSection
+        )
       );
     }
 
-    this.formElements.fileContainer.appendChild(fileItem);
+    sectionFileTemplateContainer.appendChild(fileItem);
   }
 
-  private removeUploadedFile(): void {
-    const uploadedFileElement = document.querySelector(
+  private removeUploadedFile(
+    userFile: File,
+    fileInput: HTMLInputElement,
+    element: HTMLElement,
+    sectionUploadSection: HTMLElement
+  ): void {
+    const uploadedFileElement = element.closest(
       ".uploaded-file"
     ) as HTMLElement;
     uploadedFileElement?.remove();
 
-    if (this.formElements.uploadSection) {
-      this.formElements.uploadSection.style.display = "flex";
+    // sectionUploadSection.style.display = "flex";
+    sectionUploadSection.classList.remove("hide");
+    fileInput.value = "";
+    if (fileInput.name === "Resume") {
+      this.uploadedResumeFile = null;
+    } else if (fileInput.name === "cover_letter") {
+      this.uploadedCoverLetterFile = null;
+    } else {
+      this.uploadedAdditionalFiles = this.uploadedAdditionalFiles.filter(
+        (file) => file !== userFile
+      );
     }
-    if (this.formElements.fileInput) {
-      this.formElements.fileInput.value = "";
-    }
-    this.uploadedFile = null;
+  }
+
+  private removeAllUploadedFiles(): void {
+    this.uploadedResumeFile = null;
+    this.uploadedCoverLetterFile = null;
+    this.uploadedAdditionalFiles = [];
+    this.formElements.fileInputSections.forEach((section) => {
+      const uploadedFileElements = section.querySelectorAll(".uploaded-file");
+      uploadedFileElements.forEach((el) => el.remove());
+    });
   }
 
   // ===== FORM HANDLING =====
@@ -785,7 +903,18 @@ class UnifiedJobApplicationSystem {
       consent:
         (document.querySelector('input[name="consent"]') as HTMLInputElement)
           ?.checked || false,
-      resume: this.uploadedFile,
+      resume: this.uploadedResumeFile,
+      coverLetter: this.uploadedCoverLetterFile,
+      additionalFiles: this.uploadedAdditionalFiles,
+      desiredSalary:
+        (document.getElementById("Desired-Salary") as HTMLInputElement)
+          ?.value || "",
+      desiredAdditionalCompensation:
+        (
+          document.getElementById(
+            "Desired-Additional-Compensation"
+          ) as HTMLInputElement
+        )?.value || "",
     };
   }
 
@@ -839,15 +968,31 @@ class UnifiedJobApplicationSystem {
     this.setLoadingState(true);
 
     try {
-      const formDataObj = new window.FormData();
+      const formDataObj = new FormData();
       formDataObj.append("First-Name", data.firstName);
       formDataObj.append("Last-Name", data.lastName);
       formDataObj.append("Email", data.email);
       formDataObj.append("Phone-Number", data.phoneNumber);
       formDataObj.append("Linkedin-URL", data.linkedinUrl);
+      formDataObj.append("desiredSalary", data.desiredSalary);
+      formDataObj.append(
+        "desiredAdditionalCompensation",
+        data.desiredAdditionalCompensation
+      );
 
       if (data.resume) {
         formDataObj.append("Resume", data.resume);
+      }
+
+      if (data.coverLetter) {
+        formDataObj.append("cover_letter", data.coverLetter);
+      }
+
+      if (data.additionalFiles) {
+        data.additionalFiles.forEach((file) => {
+          formDataObj.append(`additionalFile`, file);
+          // formDataObj.append(`additionalFile${index + 1}`, file);
+        });
       }
 
       const response = await fetch(
@@ -876,7 +1021,18 @@ class UnifiedJobApplicationSystem {
   private handleSuccessfulSubmission(): void {
     this.showSuccess("Application submitted successfully!");
     this.formElements.form?.reset();
-    this.removeUploadedFile();
+    this.formElements.fileInputSections.forEach((section) => {
+      const uploadSection = section.querySelector<HTMLElement>(
+        ".roles-application-form_file_contain"
+      );
+      if (uploadSection) {
+        uploadSection.classList.remove("hide");
+      }
+    });
+    this.formElements.form
+      .querySelector(".w-checkbox-input.w--redirected-checked")
+      ?.classList.remove("w--redirected-checked");
+    this.removeAllUploadedFiles();
   }
 
   private setLoadingState(isLoading: boolean): void {
@@ -1093,7 +1249,7 @@ class UnifiedJobApplicationSystem {
   }
 
   public reinitialize(): void {
-    this.uploadedFile = null;
+    this.uploadedResumeFile = null;
     this.jobId = this.getJobIdFromURL();
     this.setupInitialState();
   }
