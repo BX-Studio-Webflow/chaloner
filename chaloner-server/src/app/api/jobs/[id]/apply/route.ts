@@ -100,7 +100,7 @@ export async function POST(
       }
       const updateResult = await updateResponse.json();
       // console.log({ updateResult });
-      if (additionalFiles.length > 1) {
+      if (allAdditionalFiles.length > 1) {
         for (let i = 1; i < allAdditionalFiles.length; i++) {
           const fileFormData = new FormData();
           fileFormData.append(`person[document]`, allAdditionalFiles[i]);
