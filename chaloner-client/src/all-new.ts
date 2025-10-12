@@ -48,6 +48,7 @@ interface JobElements {
 
 interface FormElements {
   form: HTMLFormElement;
+  searchForm: HTMLFormElement;
   // fileInput: HTMLInputElement;
   // fileTemplate: HTMLElement;
   // fileContainer: HTMLElement;
@@ -135,9 +136,9 @@ class JobApplicationValidator {
       errors.push("Please enter a valid LinkedIn URL");
     }
 
-    if (!formData.consent) {
-      errors.push("You must consent to be contacted about job opportunities");
-    }
+    // if (!formData.consent) {
+    //   errors.push("You must consent to be contacted about job opportunities");
+    // }
 
     return errors;
   }
@@ -300,6 +301,7 @@ class UnifiedJobApplicationSystem {
   }
 
   private initializeFormElements(): void {
+    const searchForm = document.getElementById("email-form") as HTMLFormElement;
     const form = document.getElementById("email-form-2") as HTMLFormElement;
     const fileInput = document.querySelector(
       'input[name="Resume"]'
@@ -330,6 +332,7 @@ class UnifiedJobApplicationSystem {
 
     this.formElements = {
       form,
+      searchForm,
       fileInputSections: document.querySelectorAll(
         '[dev-target="files-section"]'
       ),
@@ -486,6 +489,10 @@ class UnifiedJobApplicationSystem {
       "submit",
       this.handleFormSubmit.bind(this)
     );
+    this.formElements.searchForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+    });
 
     // Input change for validation feedback
     this.formElements.form.addEventListener(
@@ -636,7 +643,7 @@ class UnifiedJobApplicationSystem {
         '[dev-target="location"]'
       );
 
-      if (companyElement) companyElement.textContent = job.company;
+      // if (companyElement) companyElement.textContent = job.company;
       if (titleElement) titleElement.textContent = job.title;
       if (locationElement) locationElement.textContent = job.location;
 
@@ -1084,7 +1091,8 @@ class UnifiedJobApplicationSystem {
     // Insert error message at the top of the current visible section
     const visibleSection = this.getCurrentVisibleSection();
     if (visibleSection) {
-      visibleSection.insertBefore(errorDiv, visibleSection.firstChild);
+      // visibleSection.insertBefore(errorDiv, visibleSection.firstChild);
+      visibleSection.querySelector(".w-form")?.after(errorDiv);
     }
 
     // Auto-remove error after duration
@@ -1107,7 +1115,8 @@ class UnifiedJobApplicationSystem {
     // Insert success message in current visible section
     const visibleSection = this.getCurrentVisibleSection();
     if (visibleSection) {
-      visibleSection.insertBefore(successDiv, visibleSection.firstChild);
+      // visibleSection.insertBefore(successDiv, visibleSection.firstChild);
+      visibleSection.querySelector(".w-form")?.after(successDiv);
     }
 
     // Auto-remove success after duration
