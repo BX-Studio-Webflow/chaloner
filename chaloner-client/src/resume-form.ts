@@ -613,6 +613,7 @@ class JobApplicationForm {
 
     this.formElements.form.classList.add("hide");
     this.formElements.form?.parentElement?.appendChild(successDiv);
+    window.scrollTo({ top: 0, behavior: "smooth" });
 
     setTimeout(() => {
       successDiv.remove();
