@@ -6,6 +6,8 @@ const acceptedOrigins = [
   "http://localhost:3000",
   "http://localhost:5173",
   "https://bx-chaloner.webflow.io",
+  "https://chaloner.com",
+  "https://www.chaloner.com",
 ];
 
 export function middleware(request: NextRequest) {
