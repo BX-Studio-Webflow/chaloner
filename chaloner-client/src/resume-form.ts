@@ -203,7 +203,7 @@ class JobApplicationForm {
       this.phoneInputInstance = window.intlTelInput(
         this.formElements.phoneInput,
         {
-          initialCountry: "gb",
+          initialCountry: "us",
           preferredCountries: ["gb", "us", "ca", "au"],
           separateDialCode: true,
           autoPlaceholder: "aggressive",
