@@ -55,6 +55,7 @@ interface FormElements {
   // uploadSection: HTMLElement;
   fileInputSections: NodeListOf<HTMLElement>;
   successMessage: HTMLElement;
+  formSuccess: HTMLElement;
   errorMessage: HTMLElement;
   submitButton: HTMLInputElement;
   phoneInput: HTMLInputElement;
@@ -97,14 +98,22 @@ class JobSearchFilter {
 class JobApplicationValidator {
   private static readonly EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   private static readonly LINKEDIN_REGEX =
-    /^https?:\/\/(www\.)?linkedin\.com\/.+/i;
+    /^(https?:\/\/)?(www\.)?linkedin\.com\/.+/i;
 
   static validateEmail(email: string): boolean {
     return this.EMAIL_REGEX.test(email);
   }
 
   static validateLinkedInUrl(url: string): boolean {
-    if (!url) return true; // Optional field
+    if (!url) return false; // Optional field
+
+    // Normalize value (trim spaces and remove surrounding quotes)
+    const normalized = url.trim().replace(/^['"]|['"]$/g, "");
+
+    // Allow N/A or n/a (case-insensitive)
+    if (/^n\/a$/i.test(normalized)) return true;
+
+    // Validate LinkedIn URL (with or without http/https)
     return this.LINKEDIN_REGEX.test(url);
   }
 
@@ -125,15 +134,14 @@ class JobApplicationValidator {
       errors.push("Please enter a valid email address");
     }
 
-    if (!formData.phoneNumber?.trim()) {
-      errors.push("Phone number is required");
-    }
+    // if (!formData.phoneNumber?.trim()) {
+    //   errors.push("Phone number is required");
+    // }
 
-    if (
-      formData.linkedinUrl &&
-      !this.validateLinkedInUrl(formData.linkedinUrl)
-    ) {
-      errors.push("Please enter a valid LinkedIn URL");
+    if (!this.validateLinkedInUrl(formData.linkedinUrl)) {
+      errors.push(
+        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable"
+      );
     }
 
     // if (!formData.consent) {
@@ -197,6 +205,7 @@ class UnifiedJobApplicationSystem {
   // Constants
   private readonly SUCCESS_MESSAGE_DURATION = 5000;
   private readonly ERROR_MESSAGE_DURATION = 8000;
+  private readonly API_BASE_URL = "http://localhost:3000/api";
 
   constructor() {
     this.searchFilter = new JobSearchFilter();
@@ -301,8 +310,12 @@ class UnifiedJobApplicationSystem {
   }
 
   private initializeFormElements(): void {
-    const searchForm = document.getElementById("email-form") as HTMLFormElement;
-    const form = document.getElementById("email-form-2") as HTMLFormElement;
+    const searchForm = document.querySelector(
+      "[dev-target=search-form]"
+    ) as HTMLFormElement;
+    const form = document.querySelector(
+      "[dev-target=open-roles-form]"
+    ) as HTMLFormElement;
     const fileInput = document.querySelector(
       'input[name="Resume"]'
     ) as HTMLInputElement;
@@ -311,6 +324,9 @@ class UnifiedJobApplicationSystem {
     ) as HTMLElement;
     const uploadSection = document.querySelector(
       ".roles-application-form_file_contain"
+    ) as HTMLElement;
+    const formSuccess = document.querySelector(
+      "[dev-target=form-success]"
     ) as HTMLElement;
     const successMessage = document.querySelector(
       '[dev-target="form-success"]'
@@ -333,6 +349,7 @@ class UnifiedJobApplicationSystem {
     this.formElements = {
       form,
       searchForm,
+      formSuccess,
       fileInputSections: document.querySelectorAll(
         '[dev-target="files-section"]'
       ),
@@ -366,7 +383,7 @@ class UnifiedJobApplicationSystem {
       this.phoneInputInstance = window.intlTelInput(
         this.formElements.phoneInput,
         {
-          initialCountry: "gb",
+          initialCountry: "us",
           preferredCountries: ["gb", "us", "ca", "au"],
           separateDialCode: true,
           autoPlaceholder: "aggressive",
@@ -499,6 +516,19 @@ class UnifiedJobApplicationSystem {
       "input",
       this.handleInputChange.bind(this)
     );
+
+    // LinkedIn field validation on change and blur
+    const linkedinInput = document.getElementById(
+      "Linkedin-URL"
+    ) as HTMLInputElement | null;
+    if (linkedinInput) {
+      // linkedinInput.addEventListener("change", () =>
+      //   this.validateLinkedInField(linkedinInput)
+      // );
+      linkedinInput.addEventListener("blur", () =>
+        this.validateLinkedInField(linkedinInput)
+      );
+    }
   }
 
   private setupInitialState(): void {
@@ -517,7 +547,7 @@ class UnifiedJobApplicationSystem {
   private async loadJobs(): Promise<void> {
     try {
       this.showLoading();
-      const response = await fetch("http://localhost:3000/api/jobs");
+      const response = await fetch(`${this.API_BASE_URL}/jobs`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -554,7 +584,7 @@ class UnifiedJobApplicationSystem {
   }
 
   private async loadSpecificJobDetails(jobId: number): Promise<void> {
-    const response = await fetch(`http://localhost:3000/api/jobs/${jobId}`);
+    const response = await fetch(`${this.API_BASE_URL}/jobs/${jobId}`);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -708,6 +738,8 @@ class UnifiedJobApplicationSystem {
     if (this.jobElements.applicationSection) {
       this.jobElements.descriptionSection?.classList.add("hide");
       this.jobElements.applicationSection.classList.remove("hide");
+      this.formElements.form.style.display = "grid";
+      this.formElements.formSuccess.style.display = "none";
       this.jobElements.rolesSection?.classList.add("hide");
     }
 
@@ -806,6 +838,22 @@ class UnifiedJobApplicationSystem {
       sectionUploadSection,
       sectionFileTemplateContainer
     );
+  }
+
+  private validateLinkedInField(input: HTMLInputElement): void {
+    const value = input.value.trim();
+    const isValid = JobApplicationValidator.validateLinkedInUrl(value);
+
+    if (!isValid) {
+      input.setCustomValidity(
+        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable"
+      );
+    } else {
+      input.setCustomValidity("");
+    }
+
+    // Trigger native validation UI
+    input.reportValidity();
   }
 
   private displayUploadedFile(
@@ -952,8 +1000,8 @@ class UnifiedJobApplicationSystem {
   }
 
   private async handleFormSubmit(event: Event): Promise<void> {
-    event.preventDefault();
-    event.stopPropagation();
+    // event.preventDefault();
+    // event.stopPropagation();
 
     const formData = this.collectFormData();
     const validation = this.validateFormData(formData);
@@ -972,7 +1020,7 @@ class UnifiedJobApplicationSystem {
   }
 
   private async submitForm(data: ApplicationData): Promise<void> {
-    this.setLoadingState(true);
+    // this.setLoadingState(true);
 
     try {
       const formDataObj = new FormData();
@@ -1003,7 +1051,7 @@ class UnifiedJobApplicationSystem {
       }
 
       const response = await fetch(
-        `http://localhost:3000/api/jobs/${this.jobId}/apply`,
+        `${this.API_BASE_URL}/jobs/${this.jobId}/apply`,
         {
           method: "POST",
           body: formDataObj,
@@ -1019,14 +1067,22 @@ class UnifiedJobApplicationSystem {
       }
     } catch (error) {
       console.error("Submission error:", error);
+      setTimeout(() => {
+        console.log({
+          form: this.formElements.form,
+          formSuccess: this.formElements.formSuccess,
+        });
+        this.formElements.form.style.display = "grid";
+        this.formElements.formSuccess.style.display = "none";
+      }, 2000);
       this.showError("Failed to submit application. Please try again.");
     } finally {
-      this.setLoadingState(false);
+      // this.setLoadingState(false);
     }
   }
 
   private handleSuccessfulSubmission(): void {
-    this.showSuccess("Application submitted successfully!");
+    // this.showSuccess("Application submitted successfully!");
     this.formElements.form?.reset();
     this.formElements.fileInputSections.forEach((section) => {
       const uploadSection = section.querySelector<HTMLElement>(

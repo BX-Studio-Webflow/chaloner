@@ -18,7 +18,7 @@ export async function POST(
       (formData.get("First-Name") as string) +
       " " +
       (formData.get("Last-Name") as string);
-    const phone = formData.get("Phone-Number") as string;
+    const phone = (formData.get("Phone-Number") || "00000000000") as string;
     const linkedin = formData.get("Linkedin-URL") as string;
     const resume = formData.get("Resume") as File;
     const desiredSalary = formData.get("desiredSalary") as string;
