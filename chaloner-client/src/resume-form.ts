@@ -48,14 +48,22 @@ declare global {
 class JobApplicationValidator {
   private static readonly EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   private static readonly LINKEDIN_REGEX =
-    /^https?:\/\/(www\.)?linkedin\.com\/.+/i;
+    /^(https?:\/\/)?(www\.)?linkedin\.com\/.+/i;
 
   static validateEmail(email: string): boolean {
     return this.EMAIL_REGEX.test(email);
   }
 
   static validateLinkedInUrl(url: string): boolean {
-    if (!url) return true; // Optional field
+    if (!url) return false; // Optional field
+
+    // Normalize value (trim spaces and remove surrounding quotes)
+    const normalized = url.trim().replace(/^['"]|['"]$/g, "");
+
+    // Allow N/A or n/a (case-insensitive)
+    if (/^n\/a$/i.test(normalized)) return true;
+
+    // Validate LinkedIn URL (with or without http/https)
     return this.LINKEDIN_REGEX.test(url);
   }
 
@@ -76,15 +84,14 @@ class JobApplicationValidator {
       errors.push("Please enter a valid email address");
     }
 
-    if (!formData.phoneNumber?.trim()) {
-      errors.push("Phone number is required");
-    }
+    // if (!formData.phoneNumber?.trim()) {
+    //   errors.push("Phone number is required");
+    // }
 
-    if (
-      formData.linkedinUrl &&
-      !this.validateLinkedInUrl(formData.linkedinUrl)
-    ) {
-      errors.push("Please enter a valid LinkedIn URL");
+    if (!this.validateLinkedInUrl(formData.linkedinUrl)) {
+      errors.push(
+        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable"
+      );
     }
 
     return errors;
@@ -127,6 +134,7 @@ class JobApplicationForm {
   private uploadedAdditionalFiles: File[] = [];
   private originalButtonText: string = "";
   private phoneInputInstance: any = null;
+  private apiUrl: string = "http://localhost:3000/api/people";
 
   private readonly SUCCESS_MESSAGE_DURATION = 5000;
   private readonly ERROR_MESSAGE_DURATION = 8000;
@@ -149,7 +157,9 @@ class JobApplicationForm {
   }
 
   private initializeFormElements(): void {
-    const form = document.getElementById("email-form-2") as HTMLFormElement;
+    const form = document.querySelector(
+      "[dev-target=submit-resume-form]"
+    ) as HTMLFormElement;
     const successMessage = document.querySelector(
       '[dev-target="form-success"]'
     ) as HTMLElement;
@@ -253,6 +263,19 @@ class JobApplicationForm {
       "input",
       this.handleInputChange.bind(this)
     );
+
+    // LinkedIn field validation on change and blur
+    const linkedinInput = document.getElementById(
+      "Linkedin-URL"
+    ) as HTMLInputElement | null;
+    if (linkedinInput) {
+      // linkedinInput.addEventListener("change", () =>
+      //   this.validateLinkedInField(linkedinInput)
+      // );
+      linkedinInput.addEventListener("blur", () =>
+        this.validateLinkedInField(linkedinInput)
+      );
+    }
   }
 
   private setupInitialState(): void {
@@ -333,6 +356,22 @@ class JobApplicationForm {
       sectionUploadSection,
       sectionFileTemplateContainer
     );
+  }
+
+  private validateLinkedInField(input: HTMLInputElement): void {
+    const value = input.value.trim();
+    const isValid = JobApplicationValidator.validateLinkedInUrl(value);
+
+    if (!isValid) {
+      input.setCustomValidity(
+        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable"
+      );
+    } else {
+      input.setCustomValidity("");
+    }
+
+    // Trigger native validation UI
+    input.reportValidity();
   }
 
   private displayUploadedFile(
@@ -479,8 +518,8 @@ class JobApplicationForm {
   }
 
   private async handleFormSubmit(event: Event): Promise<void> {
-    event.preventDefault();
-    event.stopPropagation();
+    // event.preventDefault();
+    // event.stopPropagation();
     const formData = this.collectFormData();
     const validation = this.validateFormData(formData);
     if (!validation.isValid) {
@@ -520,7 +559,7 @@ class JobApplicationForm {
         });
       }
 
-      const response = await fetch(`http://localhost:3000/api/people`, {
+      const response = await fetch(this.apiUrl, {
         method: "POST",
         body: formDataObj,
       });
@@ -541,7 +580,7 @@ class JobApplicationForm {
   }
 
   private handleSuccessfulSubmission(): void {
-    this.showSuccess();
+    // this.showSuccess();
     this.formElements.form?.reset();
 
     this.formElements.fileInputSections.forEach((section) => {
