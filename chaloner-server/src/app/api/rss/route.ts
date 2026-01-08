@@ -65,13 +65,14 @@ function generateRSSFeed(jobsResponse: JobsResponse): string {
       );
       const location = job.macro_address ?? "Remote";
       const jobUrl = `${baseUrl}/${job.id}`;
+      const published_at = new Date(job.published_at).toUTCString();
 
       return `
     <item>
       <title>${title}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
-      <pubDate>${currentDate}</pubDate>
+      <pubDate>${published_at}</pubDate>
       <description><![CDATA[
         <p><strong>Location:</strong> ${escapeXml(location)}</p>
         <p><strong>Job ID:</strong> ${job.id}</p>
