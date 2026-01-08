@@ -58,7 +58,7 @@ function escapeXml(unsafe: string): string {
 function generateRSSFeed(jobsResponse: JobsResponse): string {
   const currentDate = new Date().toUTCString();
   const baseUrl = "https://chaloner.com/open-roles";
-
+  
   const items = jobsResponse.results
     .map((job) => {
       const title = escapeXml(
@@ -66,14 +66,15 @@ function generateRSSFeed(jobsResponse: JobsResponse): string {
       );
       const location = job.macro_address ?? "Remote";
       const jobUrl = `${baseUrl}?jobId=${job.id}`;
-      const published_at = new Date(job.published_at).toUTCString();
-
+      const now = new Date();
+      const firstDayOfYear = `1st January ` + now.getFullYear();
+      
       return `
     <item>
       <title>${title}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
-      <pubDate>${published_at}</pubDate>
+      <pubDate>${firstDayOfYear}</pubDate>
       <description><![CDATA[
         <p><strong>Location:</strong> ${escapeXml(location)}</p>
         <p><strong>Job ID:</strong> ${job.id}</p>
