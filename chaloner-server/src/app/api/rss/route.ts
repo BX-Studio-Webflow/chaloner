@@ -7,14 +7,15 @@ const REVALIDATE_SECONDS = 10 * 60;
 
 export async function GET() {
   try {
-    if(!process.env.BEARER_AUTH) {
+    const BEARER_AUTH = process.env.BEARER_AUTH;
+    if(!BEARER_AUTH) {
       throw new Error("Missing BEARER_AUTH environment variable");
     }
     const baseURL = new URL(`https://app.loxo.co/api/chaloner/jobs`);
     baseURL.searchParams.append("published", "true");
     baseURL.searchParams.append("job_status_id", "79157");
     baseURL.searchParams.append("per_page", "100");
-    const BEARER_AUTH_HEADER = "Bearer " + process.env.BEARER_AUTH!;
+    const BEARER_AUTH_HEADER = "Bearer " + BEARER_AUTH;
 
     const response = await fetch(baseURL.toString(), {
       headers: {
