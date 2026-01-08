@@ -25,12 +25,12 @@ export async function GET() {
     });
 
     if (!response.ok) {
-        console.log(response.status, response.statusText);
+        console.error(response.status, response.statusText);
         throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const jobsResponse: JobsResponse = await response.json();
-    console.log(jobsResponse)
+  
     const rssXml = generateRSSFeed(jobsResponse);
 
     return new NextResponse(rssXml, {
