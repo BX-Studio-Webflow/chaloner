@@ -65,7 +65,7 @@ function generateRSSFeed(jobsResponse: JobsResponse): string {
         `${job.title}${job.macro_address ? ` (${job.macro_address})` : ""}`
       );
       const location = job.macro_address ?? "Remote";
-      const jobUrl = `${baseUrl}/${job.id}`;
+      const jobUrl = `${baseUrl}?jobId=${job.id}`;
       const published_at = new Date(job.published_at).toUTCString();
 
       return `
