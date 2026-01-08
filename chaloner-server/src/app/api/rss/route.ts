@@ -7,11 +7,15 @@ const REVALIDATE_SECONDS = 10 * 60;
 
 export async function GET() {
   try {
+    const BEARER_AUTH = process.env.BEARER_AUTH;
+    if(!BEARER_AUTH) {
+      throw new Error("Missing BEARER_AUTH environment variable");
+    }
     const baseURL = new URL(`https://app.loxo.co/api/chaloner/jobs`);
     baseURL.searchParams.append("published", "true");
     baseURL.searchParams.append("job_status_id", "79157");
     baseURL.searchParams.append("per_page", "100");
-    const BEARER_AUTH_HEADER = "Bearer " + process.env.BEARER_AUTH!;
+    const BEARER_AUTH_HEADER = "Bearer " + BEARER_AUTH;
 
     const response = await fetch(baseURL.toString(), {
       headers: {
@@ -22,10 +26,12 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+        console.error(response.status, response.statusText);
+        throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const jobsResponse: JobsResponse = await response.json();
+  
     const rssXml = generateRSSFeed(jobsResponse);
 
     return new NextResponse(rssXml, {
@@ -60,13 +66,14 @@ function generateRSSFeed(jobsResponse: JobsResponse): string {
       );
       const location = job.macro_address ?? "Remote";
       const jobUrl = `${baseUrl}/${job.id}`;
+      const published_at = new Date(job.published_at).toUTCString();
 
       return `
     <item>
       <title>${title}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
-      <pubDate>${currentDate}</pubDate>
+      <pubDate>${published_at}</pubDate>
       <description><![CDATA[
         <p><strong>Location:</strong> ${escapeXml(location)}</p>
         <p><strong>Job ID:</strong> ${job.id}</p>

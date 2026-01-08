@@ -43,5 +43,8 @@ function restructureJobsData(jobsResponse: JobsResponse) {
     title: job.title,
     company: job.company.name,
     location: job.macro_address ?? "Remote",
+    published_at: job.published_at,
+    updated_at: job.updated_at,
+    opened_at: job.opened_at,
   }));
 }
