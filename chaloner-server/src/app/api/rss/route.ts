@@ -66,15 +66,16 @@ function generateRSSFeed(jobsResponse: JobsResponse): string {
       );
       const location = job.macro_address ?? "Remote";
       const jobUrl = `${baseUrl}?jobId=${job.id}`;
-      const now = new Date();
-      const firstDayOfYear = `1st January ` + now.getFullYear();
       
+      const date = new Date();
+      const firstOfYear = new Date(date.getFullYear(), 0, 1);
+
       return `
     <item>
       <title>${title}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
-      <pubDate>${firstDayOfYear}</pubDate>
+      <pubDate>${firstOfYear}</pubDate>
       <description><![CDATA[
         <p><strong>Location:</strong> ${escapeXml(location)}</p>
         <p><strong>Job ID:</strong> ${job.id}</p>
