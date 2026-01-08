@@ -7,6 +7,9 @@ const REVALIDATE_SECONDS = 10 * 60;
 
 export async function GET() {
   try {
+    if(!process.env.BEARER_AUTH) {
+      throw new Error("Missing BEARER_AUTH environment variable");
+    }
     const baseURL = new URL(`https://app.loxo.co/api/chaloner/jobs`);
     baseURL.searchParams.append("published", "true");
     baseURL.searchParams.append("job_status_id", "79157");
@@ -22,10 +25,12 @@ export async function GET() {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+        console.log(response.status, response.statusText);
+        throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     const jobsResponse: JobsResponse = await response.json();
+    console.log(jobsResponse)
     const rssXml = generateRSSFeed(jobsResponse);
 
     return new NextResponse(rssXml, {
