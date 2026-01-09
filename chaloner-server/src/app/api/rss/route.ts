@@ -132,6 +132,7 @@ function generateRSSFeed(jobs: any[]): string {
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
       <pubDate>${firstOfYear}</pubDate>
+      <published>${firstOfYear}</published>
       <description><![CDATA[${description}]]></description>
       <city><![CDATA[${city}]]></city>
       <state><![CDATA[${state}]]></state>
