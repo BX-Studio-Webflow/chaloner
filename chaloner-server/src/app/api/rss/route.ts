@@ -1,9 +1,10 @@
 import { JobsResponse } from "@/types/jobs";
+import { JobResponse } from "@/types/job";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-static";
 
-const REVALIDATE_SECONDS = 10 * 60;
+const REVALIDATE_SECONDS = 24 * 60 * 60; // 1 day in seconds
 
 export async function GET() {
   try {
@@ -16,7 +17,8 @@ export async function GET() {
     baseURL.searchParams.append("job_status_id", "79157");
     baseURL.searchParams.append("per_page", "100");
     const BEARER_AUTH_HEADER = "Bearer " + BEARER_AUTH;
-
+    const fetchDescription = true;
+    
     const response = await fetch(baseURL.toString(), {
       headers: {
         Accept: "application/json",
@@ -31,8 +33,39 @@ export async function GET() {
     }
 
     const jobsResponse: JobsResponse = await response.json();
+    
+    // Fetch full job details with descriptions using Promise.all
+    let jobsWithDescriptions: (JobResponse | JobsResponse['results'][0])[] = jobsResponse.results;
+    
+    if (fetchDescription) {
+      const jobDetailsPromises = jobsResponse.results.map(async (job) => {
+        try {
+          const jobDetailResponse = await fetch(
+            `https://app.loxo.co/api/chaloner/jobs/${job.id}`,
+            {
+              headers: {
+                Accept: "application/json",
+                Authorization: BEARER_AUTH_HEADER,
+              },
+              next: { revalidate: REVALIDATE_SECONDS },
+            }
+          );
+          
+          if (jobDetailResponse.ok) {
+            const jobDetail: JobResponse = await jobDetailResponse.json();
+            return jobDetail;
+          }
+          return job;
+        } catch (error) {
+          console.error(`Error fetching job ${job.id}:`, error);
+          return job;
+        }
+      });
+      
+      jobsWithDescriptions = await Promise.all(jobDetailsPromises);
+    }
   
-    const rssXml = generateRSSFeed(jobsResponse);
+    const rssXml = generateRSSFeed(jobsWithDescriptions);
 
     return new NextResponse(rssXml, {
       headers: {
@@ -55,11 +88,22 @@ function escapeXml(unsafe: string): string {
     .replace(/'/g, "&apos;");
 }
 
-function generateRSSFeed(jobsResponse: JobsResponse): string {
+function formatDateISO(date: Date | string): string {
+  const d = new Date(date);
+  const offset = -d.getTimezoneOffset();
+  const offsetHours = Math.floor(Math.abs(offset) / 60);
+  const offsetMinutes = Math.abs(offset) % 60;
+  const offsetSign = offset >= 0 ? "+" : "-";
+  const pad = (num: number) => String(num).padStart(2, "0");
+  
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${offsetSign}${pad(offsetHours)}:${pad(offsetMinutes)}`;
+}
+
+function generateRSSFeed(jobs: any[]): string {
   const currentDate = new Date().toUTCString();
   const baseUrl = "https://chaloner.com/open-roles";
   
-  const items = jobsResponse.results
+  const items = jobs
     .map((job) => {
       const title = escapeXml(
         `${job.title}${job.macro_address ? ` (${job.macro_address})` : ""}`
@@ -69,18 +113,36 @@ function generateRSSFeed(jobsResponse: JobsResponse): string {
       
       const date = new Date();
       const firstOfYear = new Date(date.getFullYear(), 0, 1);
+      
+      // Use full description if available
+      const description = job.description || "";
+      
+      // Additional job data
+      const city = job.city || "";
+      const state = job.state_code || "";
+      const country = job.country_code === "US" ? "USA" : job.country_code || "";
+      const datePosted = job.published_at ? formatDateISO(job.published_at) : "";
+      const dateEntered = job.created_at ? formatDateISO(job.created_at) : "";
+      const salary = job.salary ? `$${job.salary}` : "";
+      const remote = job.remote_work_allowed ? "Full" : "Not Specified";
 
       return `
-    <item>
+    <job>
+      <jobid><![CDATA[ ${job.id} ]]></jobid>
       <title>${title}</title>
+      <description><![CDATA[ ${description} ]]></description>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
       <pubDate>${firstOfYear}</pubDate>
-      <description><![CDATA[
-        <p><strong>Location:</strong> ${escapeXml(location)}</p>
-        <p><strong>Job ID:</strong> ${job.id}</p>
-      ]]></description>
-    </item>`;
+      <city><![CDATA[ ${city} ]]></city>
+      <state><![CDATA[ ${state} ]]></state>
+      <country><![CDATA[ ${country} ]]></country>
+      <dateposted><![CDATA[ ${datePosted} ]]></dateposted>
+      <dateentered><![CDATA[ ${dateEntered} ]]></dateentered>
+      <salary><![CDATA[ ${salary} ]]></salary>
+      <remote><![CDATA[ ${remote} ]]></remote>
+      <jobid><![CDATA[ ${job.id} ]]></jobid>
+    </job>`;
     })
     .join("");
 
