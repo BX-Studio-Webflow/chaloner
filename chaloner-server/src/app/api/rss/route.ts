@@ -127,22 +127,21 @@ function generateRSSFeed(jobs: any[]): string {
       const remote = job.remote_work_allowed ? "Full" : "Not Specified";
 
       return `
-    <job>
-      <jobid><![CDATA[ ${job.id} ]]></jobid>
+    <item>
       <title>${title}</title>
-      <description><![CDATA[ ${description} ]]></description>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
       <pubDate>${firstOfYear}</pubDate>
-      <city><![CDATA[ ${city} ]]></city>
-      <state><![CDATA[ ${state} ]]></state>
-      <country><![CDATA[ ${country} ]]></country>
-      <dateposted><![CDATA[ ${datePosted} ]]></dateposted>
-      <dateentered><![CDATA[ ${dateEntered} ]]></dateentered>
-      <salary><![CDATA[ ${salary} ]]></salary>
-      <remote><![CDATA[ ${remote} ]]></remote>
-      <jobid><![CDATA[ ${job.id} ]]></jobid>
-    </job>`;
+      <description><![CDATA[${description}]]></description>
+      <city><![CDATA[${city}]]></city>
+      <state><![CDATA[${state}]]></state>
+      <country><![CDATA[${country}]]></country>
+      <dateposted><![CDATA[${datePosted}]]></dateposted>
+      <dateentered><![CDATA[${dateEntered}]]></dateentered>
+      <salary><![CDATA[${salary}]]></salary>
+      <remote><![CDATA[${remote}]]></remote>
+      <jobid><![CDATA[${job.id}]]></jobid>
+    </item>`;
     })
     .join("");
 
