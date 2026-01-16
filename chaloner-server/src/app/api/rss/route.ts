@@ -137,8 +137,6 @@ function generateRSSFeed(jobs: any[]): string {
       <city><![CDATA[${city}]]></city>
       <state><![CDATA[${state}]]></state>
       <country><![CDATA[${country}]]></country>
-      <dateposted><![CDATA[${datePosted}]]></dateposted>
-      <dateentered><![CDATA[${dateEntered}]]></dateentered>
       <salary><![CDATA[${salary}]]></salary>
       <remote><![CDATA[${remote}]]></remote>
       <jobid><![CDATA[${job.id}]]></jobid>
