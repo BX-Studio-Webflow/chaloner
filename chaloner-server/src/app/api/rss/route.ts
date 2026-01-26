@@ -53,7 +53,8 @@ export async function GET() {
           
           if (jobDetailResponse.ok) {
             const jobDetail: JobResponse = await jobDetailResponse.json();
-            return jobDetail;
+            // Merge original job data with detailed data to preserve fields like updated_at
+            return { ...job, ...jobDetail };
           }
           return job;
         } catch (error) {
@@ -105,6 +106,7 @@ function generateRSSFeed(jobs: any[]): string {
   
   const items = jobs
     .map((job) => {
+      console.log(job);
       const title = escapeXml(
         `${job.title}${job.macro_address ? ` (${job.macro_address})` : ""}`
       );
@@ -123,6 +125,7 @@ function generateRSSFeed(jobs: any[]): string {
       const country = job.country_code === "US" ? "USA" : job.country_code || "";
       const datePosted = job.published_at ? formatDateISO(job.published_at) : "";
       const dateEntered = job.created_at ? formatDateISO(job.created_at) : "";
+      const updated_at = job.updated_at ? formatDateISO(job.updated_at) : "";
       const salary = job.salary ? `$${job.salary}` : "";
       const remote = job.remote_work_allowed ? "Full" : "Not Specified";
 
@@ -131,8 +134,8 @@ function generateRSSFeed(jobs: any[]): string {
       <title>${title}</title>
       <link>${jobUrl}</link>
       <guid isPermaLink="true">${jobUrl}</guid>
-      <pubDate>${firstOfYear}</pubDate>
-      <published>${firstOfYear}</published>
+      <pubDate>${updated_at}</pubDate>
+      <published>${datePosted}</published>
       <description><![CDATA[${description}]]></description>
       <city><![CDATA[${city}]]></city>
       <state><![CDATA[${state}]]></state>
