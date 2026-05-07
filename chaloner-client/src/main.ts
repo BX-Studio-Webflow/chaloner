@@ -1,4 +1,14 @@
-import { getChalonerApiBaseUrl } from "./api-base";
+const CHALONER_API_BASE_URL = ((): string => {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("script") === "local"
+    ) {
+      return "http://localhost:3000/api";
+    }
+  } catch {}
+  return "https://chaloner-loxo.vercel.app/api";
+})();
 
 // TypeScript interfaces and types
 interface Job {
@@ -152,7 +162,7 @@ class JobListingManager {
   private async loadJobs(): Promise<void> {
     try {
       this.showLoading();
-      const response = await fetch(`${getChalonerApiBaseUrl()}/jobs`);
+      const response = await fetch(`${CHALONER_API_BASE_URL}/jobs`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -179,7 +189,7 @@ class JobListingManager {
     try {
       // this.showLoading("Loading job details...");
       button.classList.add("loading");
-      const response = await fetch(`${getChalonerApiBaseUrl()}/jobs/${jobId}`);
+      const response = await fetch(`${CHALONER_API_BASE_URL}/jobs/${jobId}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -373,7 +383,7 @@ class JobListingManager {
       this.showLoading("Submitting application...");
 
       const response = await fetch(
-        `${getChalonerApiBaseUrl()}/jobs/${this.currentJob.id}`,
+        `${CHALONER_API_BASE_URL}/jobs/${this.currentJob.id}`,
         {
           method: "POST",
           headers: {
@@ -568,7 +578,7 @@ class EnhancedJobListingManager extends JobListingManager {
       this.showLoading("Submitting application...");
 
       const response = await fetch(
-        `${getChalonerApiBaseUrl()}/jobs/${this.currentJob.id}`,
+        `${CHALONER_API_BASE_URL}/jobs/${this.currentJob.id}`,
         {
           method: "POST",
           headers: {

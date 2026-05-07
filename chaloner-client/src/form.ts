@@ -1,4 +1,14 @@
-import { getChalonerApiBaseUrl } from "./api-base";
+const CHALONER_API_BASE_URL = ((): string => {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("script") === "local"
+    ) {
+      return "http://localhost:3000/api";
+    }
+  } catch {}
+  return "https://chaloner-loxo.vercel.app/api";
+})();
 
 console.log("hi");
 // Job Application Form Handler - TypeScript OOP Version
@@ -398,7 +408,7 @@ class JobApplicationForm {
       }
 
       const response = await fetch(
-        `${getChalonerApiBaseUrl()}/jobs/${this.jobId}/apply`,
+        `${CHALONER_API_BASE_URL}/jobs/${this.jobId}/apply`,
         {
           method: "POST",
           body: formDataObj,

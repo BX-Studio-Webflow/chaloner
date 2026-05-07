@@ -1,7 +1,17 @@
 // Unified Job Application System - TypeScript OOP Version
 // Combines job listing management with application form handling
 
-import { getChalonerApiBaseUrl } from "./api-base";
+const CHALONER_API_BASE_URL = ((): string => {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("script") === "local"
+    ) {
+      return "http://localhost:3000/api";
+    }
+  } catch {}
+  return "https://chaloner-loxo.vercel.app/api";
+})();
 
 // ===== INTERFACES AND TYPES =====
 interface Job {
@@ -562,7 +572,7 @@ class UnifiedJobApplicationSystem {
   private async loadJobs(): Promise<void> {
     try {
       this.showLoading();
-      const response = await fetch(`${getChalonerApiBaseUrl()}/jobs`);
+      const response = await fetch(`${CHALONER_API_BASE_URL}/jobs`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -599,7 +609,7 @@ class UnifiedJobApplicationSystem {
   }
 
   private async loadSpecificJobDetails(jobId: number): Promise<void> {
-    const response = await fetch(`${getChalonerApiBaseUrl()}/jobs/${jobId}`);
+    const response = await fetch(`${CHALONER_API_BASE_URL}/jobs/${jobId}`);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -1091,7 +1101,7 @@ class UnifiedJobApplicationSystem {
       });
 
       const response = await fetch(
-        `${getChalonerApiBaseUrl()}/jobs/${this.jobId}/apply`,
+        `${CHALONER_API_BASE_URL}/jobs/${this.jobId}/apply`,
         {
           method: "POST",
           body: formDataObj,

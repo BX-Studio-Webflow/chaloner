@@ -1,7 +1,17 @@
 // Job Application Form System - TypeScript OOP Version
 // Handles application form submission and validation
 
-import { getChalonerApiBaseUrl } from "./api-base";
+const CHALONER_API_BASE_URL = ((): string => {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem("script") === "local"
+    ) {
+      return "http://localhost:3000/api";
+    }
+  } catch {}
+  return "https://chaloner-loxo.vercel.app/api";
+})();
 
 // ===== INTERFACES AND TYPES =====
 interface ApplicationData {
@@ -559,7 +569,7 @@ class JobApplicationForm {
         });
       }
 
-      const response = await fetch(`${getChalonerApiBaseUrl()}/people`, {
+      const response = await fetch(`${CHALONER_API_BASE_URL}/people`, {
         method: "POST",
         body: formDataObj,
       });
