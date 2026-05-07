@@ -1,14 +1,17 @@
 import { ApplyResponse } from "@/types/apply";
+import { JobResponse } from "@/types/job";
 import { NextResponse } from "next/server";
+
+const ACTIVE_STATUS_ID = 79157;
 
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const jobId = (await params).id;
     const baseURL = new URL(
-      `https://app.loxo.co/api/chaloner/jobs/${jobId}/apply`
+      `https://app.loxo.co/api/chaloner/jobs/${jobId}/apply`,
     );
     const BEARER_AUTH_HEADER = "Bearer " + process.env.BEARER_AUTH!;
 
@@ -23,7 +26,7 @@ export async function POST(
     const resume = formData.get("Resume") as File;
     const desiredSalary = formData.get("desiredSalary") as string;
     const desiredAdditionalCompensation = formData.get(
-      "desiredAdditionalCompensation"
+      "desiredAdditionalCompensation",
     ) as string;
     const coverLetter = formData.get("cover_letter") as File;
     const additionalFiles = formData.getAll("additionalFile") as File[];
@@ -31,15 +34,41 @@ export async function POST(
       ? [coverLetter, ...additionalFiles]
       : additionalFiles;
 
-    // console.log({
-    //   email,
-    //   name,
-    //   phone,
-    //   linkedin,
-    //   resume,
-    //   allAdditionalFiles,
-    //   allAdditionalFilesLength: allAdditionalFiles.length,
-    // });
+    if (!email || !name.trim() || !(resume instanceof File)) {
+      return NextResponse.json(
+        { error: "Missing required fields (name, email, resume)" },
+        { status: 400 },
+      );
+    }
+
+    const jobStatusResponse = await fetch(
+      `https://app.loxo.co/api/chaloner/jobs/${jobId}`,
+      {
+        headers: {
+          Accept: "application/json",
+          Authorization: BEARER_AUTH_HEADER,
+        },
+      },
+    );
+
+    if (!jobStatusResponse.ok) {
+      return NextResponse.json(
+        { error: "Unable to verify job status before submission" },
+        { status: 502 },
+      );
+    }
+
+    const jobData = (await jobStatusResponse.json()) as JobResponse;
+    if (jobData.status?.id !== ACTIVE_STATUS_ID || !jobData.published) {
+      return NextResponse.json(
+        {
+          error:
+            "This listing is closed and no longer accepting applications. Please view active roles.",
+          code: "JOB_CLOSED",
+        },
+        { status: 409 },
+      );
+    }
 
     const loxoFormData = new FormData();
     loxoFormData.append("email", email);
@@ -47,6 +76,11 @@ export async function POST(
     loxoFormData.append("phone", phone);
     loxoFormData.append("linkedin", linkedin);
     loxoFormData.append("resume", resume);
+    for (const [key, value] of formData.entries()) {
+      if (key.startsWith("loxo_question_") && typeof value === "string") {
+        loxoFormData.append(key.replace("loxo_question_", ""), value);
+      }
+    }
 
     const response = await fetch(baseURL.toString(), {
       method: "POST",
@@ -57,7 +91,10 @@ export async function POST(
     });
 
     if (!response.ok) {
-      throw new Error(`Loxo API responded with status: ${response.status}`);
+      const errorBody = await response.text();
+      throw new Error(
+        `Loxo API responded with status: ${response.status}. ${errorBody}`,
+      );
     }
 
     const result = (await response.json()) as ApplyResponse;
@@ -76,7 +113,7 @@ export async function POST(
       if (desiredAdditionalCompensation) {
         updatePersonFormData.append(
           "person[bonus]",
-          desiredAdditionalCompensation
+          desiredAdditionalCompensation,
         );
       }
       if (allAdditionalFiles.length > 0) {
@@ -95,7 +132,7 @@ export async function POST(
 
       if (!updateResponse.ok) {
         throw new Error(
-          `Loxo Person Update API responded with status: ${updateResponse.status}`
+          `Loxo Person Update API responded with status: ${updateResponse.status}`,
         );
       }
       const updateResult = await updateResponse.json();
@@ -115,7 +152,7 @@ export async function POST(
             console.error(
               `Failed to upload additional file ${i + 1}: ${
                 fileResponse.status
-              }`
+              }`,
             );
           } else {
             const fileResult = await fileResponse.json();
@@ -130,8 +167,11 @@ export async function POST(
   } catch (error) {
     console.error("Error applying for job:", error);
     return NextResponse.json(
-      { error: "Failed to apply for job" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to apply for job",
+      },
+      { status: 500 },
     );
   }
 }

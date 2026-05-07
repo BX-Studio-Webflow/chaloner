@@ -136,7 +136,6 @@ class JobApplicationForm {
   private phoneInputInstance: any = null;
   private apiUrl: string = "http://localhost:3000/api/people";
 
-  private readonly SUCCESS_MESSAGE_DURATION = 5000;
   private readonly ERROR_MESSAGE_DURATION = 8000;
 
   constructor() {
@@ -517,7 +516,7 @@ class JobApplicationForm {
     };
   }
 
-  private async handleFormSubmit(event: Event): Promise<void> {
+  private async handleFormSubmit(_event: Event): Promise<void> {
     // event.preventDefault();
     // event.stopPropagation();
     const formData = this.collectFormData();
@@ -644,7 +643,7 @@ class JobApplicationForm {
     }, this.ERROR_MESSAGE_DURATION);
   }
 
-  private showSuccess(): void {
+  /*private showSuccess(): void {
     const successDiv = this.formElements.successMessage.cloneNode(
       true
     ) as HTMLElement;
@@ -658,7 +657,7 @@ class JobApplicationForm {
       successDiv.remove();
       this.formElements.form.classList.remove("hide");
     }, this.SUCCESS_MESSAGE_DURATION);
-  }
+  }*/
 
   private hideAllMessages(): void {
     if (this.formElements.successMessage) {

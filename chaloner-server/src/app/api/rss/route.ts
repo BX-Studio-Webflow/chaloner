@@ -4,7 +4,8 @@ import { NextResponse } from "next/server";
 
 export const dynamic = "force-static";
 
-const REVALIDATE_SECONDS = 24 * 60 * 60; // 1 day in seconds
+const REVALIDATE_SECONDS = 10 * 60;
+const ACTIVE_STATUS_ID = 79157;
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
     }
     const baseURL = new URL(`https://app.loxo.co/api/chaloner/jobs`);
     baseURL.searchParams.append("published", "true");
-    baseURL.searchParams.append("job_status_id", "79157");
+    baseURL.searchParams.append("job_status_id", String(ACTIVE_STATUS_ID));
     baseURL.searchParams.append("per_page", "100");
     const BEARER_AUTH_HEADER = "Bearer " + BEARER_AUTH;
     const fetchDescription = true;
@@ -33,12 +34,14 @@ export async function GET() {
     }
 
     const jobsResponse: JobsResponse = await response.json();
+    const activeJobs = jobsResponse.results.filter(isActiveJob);
     
     // Fetch full job details with descriptions using Promise.all
-    let jobsWithDescriptions: (JobResponse | JobsResponse['results'][0])[] = jobsResponse.results;
+    let jobsWithDescriptions: (JobResponse | JobsResponse["results"][0])[] =
+      activeJobs;
     
     if (fetchDescription) {
-      const jobDetailsPromises = jobsResponse.results.map(async (job) => {
+      const jobDetailsPromises = activeJobs.map(async (job) => {
         try {
           const jobDetailResponse = await fetch(
             `https://app.loxo.co/api/chaloner/jobs/${job.id}`,
@@ -66,7 +69,7 @@ export async function GET() {
       jobsWithDescriptions = await Promise.all(jobDetailsPromises);
     }
   
-    const rssXml = generateRSSFeed(jobsWithDescriptions);
+    const rssXml = generateRSSFeed(jobsWithDescriptions.filter(isActiveJob));
 
     return new NextResponse(rssXml, {
       headers: {
@@ -100,21 +103,21 @@ function formatDateISO(date: Date | string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}${offsetSign}${pad(offsetHours)}:${pad(offsetMinutes)}`;
 }
 
+function isActiveJob(job: { status?: { id?: number }; published?: boolean }) {
+  return job.status?.id === ACTIVE_STATUS_ID && job.published === true;
+}
+
 function generateRSSFeed(jobs: any[]): string {
   const currentDate = new Date().toUTCString();
   const baseUrl = "https://chaloner.com/open-roles";
   
   const items = jobs
     .map((job) => {
-      console.log(job);
       const title = escapeXml(
         `${job.title}${job.macro_address ? ` (${job.macro_address})` : ""}`
       );
       const location = job.macro_address ?? "Remote";
       const jobUrl = `${baseUrl}?jobId=${job.id}`;
-      
-      const date = new Date();
-      const firstOfYear = new Date(date.getFullYear(), 0, 1);
       
       // Use full description if available
       const description = job.description || "";

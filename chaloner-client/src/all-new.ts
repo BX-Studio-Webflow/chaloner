@@ -7,10 +7,23 @@ interface Job {
   title: string;
   company: string;
   location: string;
+  company_hidden?: boolean;
+  is_active?: boolean;
+  status?: string;
 }
 
 interface JobDetails extends Job {
   description: string;
+  custom_questions?: CustomQuestion[];
+}
+
+interface CustomQuestion {
+  id: string;
+  label: string;
+  required: boolean;
+  type: string;
+  field_key: string;
+  options: string[];
 }
 
 interface ApplicationData {
@@ -44,6 +57,8 @@ interface JobElements {
   descCompany: HTMLElement | null;
   descLocation: HTMLElement | null;
   descContent: HTMLElement | null;
+  closedStateMessage: HTMLElement | null;
+  customQuestionsContainer: HTMLElement | null;
 }
 
 interface FormElements {
@@ -203,7 +218,6 @@ class UnifiedJobApplicationSystem {
   private searchFilter: JobSearchFilter;
 
   // Constants
-  private readonly SUCCESS_MESSAGE_DURATION = 5000;
   private readonly ERROR_MESSAGE_DURATION = 8000;
   private readonly API_BASE_URL = "http://localhost:3000/api";
 
@@ -306,6 +320,12 @@ class UnifiedJobApplicationSystem {
       descContent: document.querySelector<HTMLElement>(
         '[dev-target="description"]'
       ),
+      closedStateMessage: document.querySelector<HTMLElement>(
+        '[dev-target="closed-state-message"]'
+      ),
+      customQuestionsContainer: document.querySelector<HTMLElement>(
+        '[dev-target="custom-questions"]'
+      ),
     };
   }
 
@@ -319,12 +339,6 @@ class UnifiedJobApplicationSystem {
     const fileInput = document.querySelector(
       'input[name="Resume"]'
     ) as HTMLInputElement;
-    const fileTemplate = document.querySelector(
-      '[dev-target="file-item-template"]'
-    ) as HTMLElement;
-    const uploadSection = document.querySelector(
-      ".roles-application-form_file_contain"
-    ) as HTMLElement;
     const formSuccess = document.querySelector(
       "[dev-target=form-success]"
     ) as HTMLElement;
@@ -673,7 +687,7 @@ class UnifiedJobApplicationSystem {
         '[dev-target="location"]'
       );
 
-      // if (companyElement) companyElement.textContent = job.company;
+      if (companyElement) companyElement.textContent = job.company;
       if (titleElement) titleElement.textContent = job.title;
       if (locationElement) locationElement.textContent = job.location;
 
@@ -723,7 +737,22 @@ class UnifiedJobApplicationSystem {
       this.jobElements.descContent.innerHTML = this.currentJob.description;
     if (this.jobElements.toApplicationSection) {
       this.jobElements.toApplicationSection.href = `${this.jobElements.resumeHref}?jobId=${this.currentJob.id}`;
+      if (this.currentJob.is_active === false) {
+        this.jobElements.toApplicationSection.classList.add("hide");
+      } else {
+        this.jobElements.toApplicationSection.classList.remove("hide");
+      }
     }
+    if (this.jobElements.closedStateMessage) {
+      if (this.currentJob.is_active === false) {
+        this.jobElements.closedStateMessage.textContent =
+          "This listing is closed - view active roles.";
+        this.jobElements.closedStateMessage.classList.remove("hide");
+      } else {
+        this.jobElements.closedStateMessage.classList.add("hide");
+      }
+    }
+    this.renderCustomQuestions(this.currentJob.custom_questions ?? []);
 
     // Update URL with jobId parameter
     this.updateUrlWithJobId(this.currentJob.id);
@@ -1000,8 +1029,15 @@ class UnifiedJobApplicationSystem {
   }
 
   private async handleFormSubmit(event: Event): Promise<void> {
-    // event.preventDefault();
-    // event.stopPropagation();
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (this.currentJob?.is_active === false) {
+      this.showError(
+        "This listing is closed and cannot accept applications. Please view active roles."
+      );
+      return;
+    }
 
     const formData = this.collectFormData();
     const validation = this.validateFormData(formData);
@@ -1020,7 +1056,7 @@ class UnifiedJobApplicationSystem {
   }
 
   private async submitForm(data: ApplicationData): Promise<void> {
-    // this.setLoadingState(true);
+    this.setLoadingState(true);
 
     try {
       const formDataObj = new FormData();
@@ -1049,6 +1085,9 @@ class UnifiedJobApplicationSystem {
           // formDataObj.append(`additionalFile${index + 1}`, file);
         });
       }
+      this.collectCustomQuestionAnswers().forEach(({ key, value }) => {
+        formDataObj.append(`loxo_question_${key}`, value);
+      });
 
       const response = await fetch(
         `${this.API_BASE_URL}/jobs/${this.jobId}/apply`,
@@ -1067,22 +1106,93 @@ class UnifiedJobApplicationSystem {
       }
     } catch (error) {
       console.error("Submission error:", error);
-      setTimeout(() => {
-        console.log({
-          form: this.formElements.form,
-          formSuccess: this.formElements.formSuccess,
-        });
-        this.formElements.form.style.display = "grid";
-        this.formElements.formSuccess.style.display = "none";
-      }, 2000);
-      this.showError("Failed to submit application. Please try again.");
+      this.formElements.form.style.display = "grid";
+      this.formElements.formSuccess.style.display = "none";
+      this.showError(
+        error instanceof Error
+          ? error.message
+          : "Failed to submit application. Please try again."
+      );
     } finally {
-      // this.setLoadingState(false);
+      this.setLoadingState(false);
     }
   }
 
+  private renderCustomQuestions(questions: CustomQuestion[]): void {
+    const container = this.jobElements.customQuestionsContainer;
+    if (!container) return;
+
+    container.innerHTML = "";
+    if (questions.length === 0) {
+      container.classList.add("hide");
+      return;
+    }
+
+    questions.forEach((question, index) => {
+      const fieldWrap = document.createElement("div");
+      fieldWrap.className = "roles-application-form_input_wrap";
+      const fieldName = `loxo_question_${question.field_key || question.id || index}`;
+      const label = document.createElement("label");
+      label.className = "roles-application-form_label";
+      label.textContent = question.label + (question.required ? " *" : "");
+      label.setAttribute("for", fieldName);
+
+      let field: HTMLElement;
+      if (
+        question.type === "select" ||
+        question.type === "dropdown" ||
+        question.options.length > 0
+      ) {
+        const select = document.createElement("select");
+        select.name = fieldName;
+        select.id = fieldName;
+        select.className = "roles-application-form_input";
+        if (question.required) select.required = true;
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Please select";
+        select.appendChild(placeholder);
+        question.options.forEach((option) => {
+          const optionEl = document.createElement("option");
+          optionEl.value = option;
+          optionEl.textContent = option;
+          select.appendChild(optionEl);
+        });
+        field = select;
+      } else {
+        const input = document.createElement("input");
+        input.name = fieldName;
+        input.id = fieldName;
+        input.className = "roles-application-form_input";
+        input.type = question.type === "number" ? "number" : "text";
+        if (question.required) input.required = true;
+        field = input;
+      }
+
+      fieldWrap.appendChild(label);
+      fieldWrap.appendChild(field);
+      container.appendChild(fieldWrap);
+    });
+    container.classList.remove("hide");
+  }
+
+  private collectCustomQuestionAnswers(): Array<{ key: string; value: string }> {
+    const container = this.jobElements.customQuestionsContainer;
+    if (!container) return [];
+
+    return Array.from(
+      container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+        "input[name^='loxo_question_'], select[name^='loxo_question_']"
+      )
+    )
+      .map((field) => ({
+        key: field.name.replace("loxo_question_", ""),
+        value: field.value.trim(),
+      }))
+      .filter((answer) => answer.value.length > 0);
+  }
+
   private handleSuccessfulSubmission(): void {
-    // this.showSuccess("Application submitted successfully!");
     this.formElements.form?.reset();
     this.formElements.fileInputSections.forEach((section) => {
       const uploadSection = section.querySelector<HTMLElement>(
@@ -1096,6 +1206,11 @@ class UnifiedJobApplicationSystem {
       .querySelector(".w-checkbox-input.w--redirected-checked")
       ?.classList.remove("w--redirected-checked");
     this.removeAllUploadedFiles();
+
+    // Show the success state after a completed submission.
+    this.formElements.form.style.display = "none";
+    this.formElements.formSuccess.style.display = "block";
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   private setLoadingState(isLoading: boolean): void {
@@ -1155,30 +1270,6 @@ class UnifiedJobApplicationSystem {
     setTimeout(() => {
       errorDiv.remove();
     }, this.ERROR_MESSAGE_DURATION);
-  }
-
-  private showSuccess(message: string): void {
-    const successDiv = document.createElement("div");
-    successDiv.className = "success system-message";
-    successDiv.textContent = message;
-
-    // Remove existing success messages
-    const existingSuccess = document.querySelectorAll(
-      ".success.system-message"
-    );
-    existingSuccess.forEach((success) => success.remove());
-
-    // Insert success message in current visible section
-    const visibleSection = this.getCurrentVisibleSection();
-    if (visibleSection) {
-      // visibleSection.insertBefore(successDiv, visibleSection.firstChild);
-      visibleSection.querySelector(".w-form")?.after(successDiv);
-    }
-
-    // Auto-remove success after duration
-    setTimeout(() => {
-      successDiv.remove();
-    }, this.SUCCESS_MESSAGE_DURATION);
   }
 
   private getCurrentVisibleSection(): HTMLElement | null {

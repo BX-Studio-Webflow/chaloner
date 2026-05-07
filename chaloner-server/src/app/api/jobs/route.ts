@@ -41,8 +41,11 @@ function restructureJobsData(jobsResponse: JobsResponse) {
   return jobsResponse.results.map((job) => ({
     id: job.id,
     title: job.title,
-    company: job.company.name,
+    company: job.company_hidden ? "Confidential Company" : job.company.name,
+    company_hidden: job.company_hidden,
     location: job.macro_address ?? "Remote",
+    status: job.status.name,
+    is_active: job.status.id === 79157,
     published_at: job.published_at,
     updated_at: job.updated_at,
     opened_at: job.opened_at,

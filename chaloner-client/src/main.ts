@@ -451,12 +451,7 @@ class JobListingManager {
 
 // Additional utility classes for enhanced functionality
 class JobSearchFilter {
-  private jobManager: JobListingManager;
   private debounceTimer: NodeJS.Timeout | null = null;
-
-  constructor(jobManager: JobListingManager) {
-    this.jobManager = jobManager;
-  }
 
   debounceSearch(callback: () => void, delay: number = 300): void {
     if (this.debounceTimer) {
@@ -517,7 +512,7 @@ class EnhancedJobListingManager extends JobListingManager {
 
   constructor() {
     super();
-    this.searchFilter = new JobSearchFilter(this);
+    this.searchFilter = new JobSearchFilter();
     this.initializeEnhancements();
   }
 
