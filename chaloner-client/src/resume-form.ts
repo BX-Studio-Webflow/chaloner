@@ -1,6 +1,8 @@
 // Job Application Form System - TypeScript OOP Version
 // Handles application form submission and validation
 
+import { getChalonerApiBaseUrl } from "./api-base";
+
 // ===== INTERFACES AND TYPES =====
 interface ApplicationData {
   firstName: string;
@@ -134,7 +136,6 @@ class JobApplicationForm {
   private uploadedAdditionalFiles: File[] = [];
   private originalButtonText: string = "";
   private phoneInputInstance: any = null;
-  private apiUrl: string = "http://localhost:3000/api/people";
 
   private readonly ERROR_MESSAGE_DURATION = 8000;
 
@@ -558,7 +559,7 @@ class JobApplicationForm {
         });
       }
 
-      const response = await fetch(this.apiUrl, {
+      const response = await fetch(`${getChalonerApiBaseUrl()}/people`, {
         method: "POST",
         body: formDataObj,
       });

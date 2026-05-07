@@ -1,3 +1,5 @@
+import { getChalonerApiBaseUrl } from "./api-base";
+
 console.log("hi");
 // Job Application Form Handler - TypeScript OOP Version
 
@@ -396,7 +398,7 @@ class JobApplicationForm {
       }
 
       const response = await fetch(
-        `http://localhost:3000/api/jobs/${this.jobId}/apply`,
+        `${getChalonerApiBaseUrl()}/jobs/${this.jobId}/apply`,
         {
           method: "POST",
           body: formDataObj,

@@ -1,3 +1,5 @@
+import { getChalonerApiBaseUrl } from "./api-base";
+
 // TypeScript interfaces and types
 interface Job {
   id: number;
@@ -150,7 +152,7 @@ class JobListingManager {
   private async loadJobs(): Promise<void> {
     try {
       this.showLoading();
-      const response = await fetch("http://localhost:3000/api/jobs");
+      const response = await fetch(`${getChalonerApiBaseUrl()}/jobs`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -177,7 +179,7 @@ class JobListingManager {
     try {
       // this.showLoading("Loading job details...");
       button.classList.add("loading");
-      const response = await fetch(`http://localhost:3000/api/jobs/${jobId}`);
+      const response = await fetch(`${getChalonerApiBaseUrl()}/jobs/${jobId}`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -371,7 +373,7 @@ class JobListingManager {
       this.showLoading("Submitting application...");
 
       const response = await fetch(
-        `http://localhost:3000/api/jobs/${this.currentJob.id}`,
+        `${getChalonerApiBaseUrl()}/jobs/${this.currentJob.id}`,
         {
           method: "POST",
           headers: {
@@ -566,7 +568,7 @@ class EnhancedJobListingManager extends JobListingManager {
       this.showLoading("Submitting application...");
 
       const response = await fetch(
-        `http://localhost:3000/api/jobs/${this.currentJob.id}`,
+        `${getChalonerApiBaseUrl()}/jobs/${this.currentJob.id}`,
         {
           method: "POST",
           headers: {

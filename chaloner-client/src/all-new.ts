@@ -1,6 +1,8 @@
 // Unified Job Application System - TypeScript OOP Version
 // Combines job listing management with application form handling
 
+import { getChalonerApiBaseUrl } from "./api-base";
+
 // ===== INTERFACES AND TYPES =====
 interface Job {
   id: number;
@@ -155,7 +157,7 @@ class JobApplicationValidator {
 
     if (!this.validateLinkedInUrl(formData.linkedinUrl)) {
       errors.push(
-        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable"
+        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable",
       );
     }
 
@@ -219,7 +221,6 @@ class UnifiedJobApplicationSystem {
 
   // Constants
   private readonly ERROR_MESSAGE_DURATION = 8000;
-  private readonly API_BASE_URL = "http://localhost:3000/api";
 
   constructor() {
     this.searchFilter = new JobSearchFilter();
@@ -258,7 +259,7 @@ class UnifiedJobApplicationSystem {
         } catch (error) {
           console.error("Failed to load initial job from URL:", error);
           this.showError(
-            `Failed to load job ${urlJobId}. Showing all jobs instead.`
+            `Failed to load job ${urlJobId}. Showing all jobs instead.`,
           );
           this.showRolesSection();
         }
@@ -272,90 +273,90 @@ class UnifiedJobApplicationSystem {
   private initializeJobElements(): void {
     this.jobElements = {
       roleSearch: document.querySelector<HTMLInputElement>(
-        '[dev-target="role-search"]'
+        '[dev-target="role-search"]',
       ),
       locationSort: document.querySelector<HTMLElement>(
-        '[dev-target="location-sort"]'
+        '[dev-target="location-sort"]',
       ),
       roleListWrap: document.querySelector<HTMLElement>(
-        '[dev-target="role-list-wrap"]'
+        '[dev-target="role-list-wrap"]',
       ),
       roleTemplate: document.querySelector<HTMLElement>(
-        '[dev-target="role-template"]'
+        '[dev-target="role-template"]',
       ),
       rolesSection: document.querySelector<HTMLElement>(
-        '[dev-target="roles-section"]'
+        '[dev-target="roles-section"]',
       ),
       descriptionSection: document.querySelector<HTMLElement>(
-        '[dev-target="description-section"]'
+        '[dev-target="description-section"]',
       ),
       backToRolesButton: document.querySelector<HTMLElement>(
-        '[dev-target="back-to-roles"]'
+        '[dev-target="back-to-roles"]',
       ),
       backToDescriptionButton: document.querySelector<HTMLElement>(
-        '[dev-target="back-to-description"]'
+        '[dev-target="back-to-description"]',
       ),
       rolesLoader: document.querySelector<HTMLElement>(
-        '[dev-target="roles-loader"]'
+        '[dev-target="roles-loader"]',
       ),
       applicationSection: document.querySelector<HTMLElement>(
-        '[dev-target="application-section"]'
+        '[dev-target="application-section"]',
       ),
       toApplicationSection: document.querySelector<HTMLAnchorElement>(
-        '[dev-target="to-application-section"]'
+        '[dev-target="to-application-section"]',
       ),
       resumeHref:
         document.querySelector<HTMLAnchorElement>(
-          '[dev-target="to-application-section"]'
+          '[dev-target="to-application-section"]',
         )?.href || null,
       descTitle: document.querySelector<HTMLElement>(
-        '[dev-target="description-section"] [dev-target="title"]'
+        '[dev-target="description-section"] [dev-target="title"]',
       ),
       descCompany: document.querySelector<HTMLElement>(
-        '[dev-target="description-section"] [dev-target="company"]'
+        '[dev-target="description-section"] [dev-target="company"]',
       ),
       descLocation: document.querySelector<HTMLElement>(
-        '[dev-target="description-section"] [dev-target="location"]'
+        '[dev-target="description-section"] [dev-target="location"]',
       ),
       descContent: document.querySelector<HTMLElement>(
-        '[dev-target="description"]'
+        '[dev-target="description"]',
       ),
       closedStateMessage: document.querySelector<HTMLElement>(
-        '[dev-target="closed-state-message"]'
+        '[dev-target="closed-state-message"]',
       ),
       customQuestionsContainer: document.querySelector<HTMLElement>(
-        '[dev-target="custom-questions"]'
+        '[dev-target="custom-questions"]',
       ),
     };
   }
 
   private initializeFormElements(): void {
     const searchForm = document.querySelector(
-      "[dev-target=search-form]"
+      "[dev-target=search-form]",
     ) as HTMLFormElement;
     const form = document.querySelector(
-      "[dev-target=open-roles-form]"
+      "[dev-target=open-roles-form]",
     ) as HTMLFormElement;
     const fileInput = document.querySelector(
-      'input[name="Resume"]'
+      'input[name="Resume"]',
     ) as HTMLInputElement;
     const formSuccess = document.querySelector(
-      "[dev-target=form-success]"
+      "[dev-target=form-success]",
     ) as HTMLElement;
     const successMessage = document.querySelector(
-      '[dev-target="form-success"]'
+      '[dev-target="form-success"]',
     ) as HTMLElement;
     const errorMessage = document.querySelector(".w-form-fail") as HTMLElement;
     const submitButton = form?.querySelector(
-      'input[type="submit"]'
+      'input[type="submit"]',
     ) as HTMLInputElement;
     const phoneInput = document.getElementById(
-      "Phone-Number"
+      "Phone-Number",
     ) as HTMLInputElement;
 
     if (!form || !fileInput || !submitButton) {
       console.warn(
-        "Form elements not found. Application form features will be limited."
+        "Form elements not found. Application form features will be limited.",
       );
       return;
     }
@@ -365,7 +366,7 @@ class UnifiedJobApplicationSystem {
       searchForm,
       formSuccess,
       fileInputSections: document.querySelectorAll(
-        '[dev-target="files-section"]'
+        '[dev-target="files-section"]',
       ),
       // fileInput,
       // fileTemplate: fileTemplate || document.createElement("div"),
@@ -404,7 +405,7 @@ class UnifiedJobApplicationSystem {
           utilsScript:
             "https://cdn.jsdelivr.net/npm/intl-tel-input@25.10.12/build/js/utils.js",
           validationNumberType: "MOBILE",
-        }
+        },
       );
 
       this.formElements.phoneInput.addEventListener("countrychange", () => {
@@ -493,11 +494,11 @@ class UnifiedJobApplicationSystem {
     this.formElements.fileInputSections.forEach((section) => {
       const sectionInput = section.querySelector('input[type="file"]');
       const sectionFileTemplate = section.querySelector<HTMLElement>(
-        "[dev-target=file-item-template]"
+        "[dev-target=file-item-template]",
       );
       const sectionFileTemplateContainer = sectionFileTemplate?.parentElement;
       const sectionUploadSection = section.querySelector<HTMLElement>(
-        ".roles-application-form_file_contain"
+        ".roles-application-form_file_contain",
       );
       if (
         sectionInput &&
@@ -509,8 +510,8 @@ class UnifiedJobApplicationSystem {
             event,
             sectionFileTemplate,
             sectionUploadSection,
-            sectionFileTemplateContainer
-          )
+            sectionFileTemplateContainer,
+          ),
         );
       }
     });
@@ -518,7 +519,7 @@ class UnifiedJobApplicationSystem {
     // Form submission
     this.formElements.form.addEventListener(
       "submit",
-      this.handleFormSubmit.bind(this)
+      this.handleFormSubmit.bind(this),
     );
     this.formElements.searchForm.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -528,19 +529,19 @@ class UnifiedJobApplicationSystem {
     // Input change for validation feedback
     this.formElements.form.addEventListener(
       "input",
-      this.handleInputChange.bind(this)
+      this.handleInputChange.bind(this),
     );
 
     // LinkedIn field validation on change and blur
     const linkedinInput = document.getElementById(
-      "Linkedin-URL"
+      "Linkedin-URL",
     ) as HTMLInputElement | null;
     if (linkedinInput) {
       // linkedinInput.addEventListener("change", () =>
       //   this.validateLinkedInField(linkedinInput)
       // );
       linkedinInput.addEventListener("blur", () =>
-        this.validateLinkedInField(linkedinInput)
+        this.validateLinkedInField(linkedinInput),
       );
     }
   }
@@ -549,7 +550,7 @@ class UnifiedJobApplicationSystem {
     if (this.formElements.fileInputSections) {
       this.formElements.fileInputSections.forEach((section) => {
         const fileTemplate = section.querySelector<HTMLElement>(
-          "[dev-target=file-item-template]"
+          "[dev-target=file-item-template]",
         );
         if (fileTemplate) fileTemplate.style.display = "none";
       });
@@ -561,7 +562,7 @@ class UnifiedJobApplicationSystem {
   private async loadJobs(): Promise<void> {
     try {
       this.showLoading();
-      const response = await fetch(`${this.API_BASE_URL}/jobs`);
+      const response = await fetch(`${getChalonerApiBaseUrl()}/jobs`);
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -583,7 +584,7 @@ class UnifiedJobApplicationSystem {
 
   private async loadJobDetails(
     jobId: number,
-    button: HTMLElement
+    button: HTMLElement,
   ): Promise<void> {
     try {
       button.classList.add("loading");
@@ -598,7 +599,7 @@ class UnifiedJobApplicationSystem {
   }
 
   private async loadSpecificJobDetails(jobId: number): Promise<void> {
-    const response = await fetch(`${this.API_BASE_URL}/jobs/${jobId}`);
+    const response = await fetch(`${getChalonerApiBaseUrl()}/jobs/${jobId}`);
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -622,7 +623,7 @@ class UnifiedJobApplicationSystem {
         (job) =>
           job.title.toLowerCase().includes(term) ||
           job.company.toLowerCase().includes(term) ||
-          job.location.toLowerCase().includes(term)
+          job.location.toLowerCase().includes(term),
       );
     }
 
@@ -669,7 +670,7 @@ class UnifiedJobApplicationSystem {
       if (!this.jobElements.roleTemplate) return;
 
       const jobElement = this.jobElements.roleTemplate.cloneNode(
-        true
+        true,
       ) as HTMLElement;
       jobElement.removeAttribute("dev-target");
       jobElement.classList.remove("hidden");
@@ -678,13 +679,13 @@ class UnifiedJobApplicationSystem {
 
       // Update content
       const companyElement = jobElement.querySelector<HTMLElement>(
-        '[dev-target="company"]'
+        '[dev-target="company"]',
       );
       const titleElement = jobElement.querySelector<HTMLElement>(
-        '[dev-target="title"]'
+        '[dev-target="title"]',
       );
       const locationElement = jobElement.querySelector<HTMLElement>(
-        '[dev-target="location"]'
+        '[dev-target="location"]',
       );
 
       if (companyElement) companyElement.textContent = job.company;
@@ -693,7 +694,7 @@ class UnifiedJobApplicationSystem {
 
       // Add click event listener
       const toDescriptionBtn = jobElement.querySelector<HTMLElement>(
-        '[dev-target="to-description-section"]'
+        '[dev-target="to-description-section"]',
       );
       if (toDescriptionBtn) {
         toDescriptionBtn.addEventListener("click", (e: Event) => {
@@ -805,7 +806,7 @@ class UnifiedJobApplicationSystem {
     event: Event,
     sectionFileTemplate: HTMLElement,
     sectionUploadSection: HTMLElement,
-    sectionFileTemplateContainer: HTMLElement
+    sectionFileTemplateContainer: HTMLElement,
   ): void {
     const fileInput = event.target as HTMLInputElement;
     const inputName = fileInput.name;
@@ -822,7 +823,7 @@ class UnifiedJobApplicationSystem {
             inputName,
             sectionFileTemplate,
             sectionUploadSection,
-            sectionFileTemplateContainer
+            sectionFileTemplateContainer,
           );
         });
     }
@@ -834,7 +835,7 @@ class UnifiedJobApplicationSystem {
     inputName: string,
     sectionFileTemplate: HTMLElement,
     sectionUploadSection: HTMLElement,
-    sectionFileTemplateContainer: HTMLElement
+    sectionFileTemplateContainer: HTMLElement,
   ): void {
     const validation = FileValidator.validateFile(file);
 
@@ -865,7 +866,7 @@ class UnifiedJobApplicationSystem {
       file,
       sectionFileTemplate,
       sectionUploadSection,
-      sectionFileTemplateContainer
+      sectionFileTemplateContainer,
     );
   }
 
@@ -875,7 +876,7 @@ class UnifiedJobApplicationSystem {
 
     if (!isValid) {
       input.setCustomValidity(
-        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable"
+        "Please enter a valid LinkedIn URL or type 'N/A' if not applicable",
       );
     } else {
       input.setCustomValidity("");
@@ -890,7 +891,7 @@ class UnifiedJobApplicationSystem {
     file: File,
     sectionFileTemplate: HTMLElement,
     sectionUploadSection: HTMLElement,
-    sectionFileTemplateContainer: HTMLElement
+    sectionFileTemplateContainer: HTMLElement,
   ): void {
     if (
       !sectionFileTemplate ||
@@ -912,12 +913,12 @@ class UnifiedJobApplicationSystem {
     fileItem.classList.add("uploaded-file");
 
     const fileName = fileItem.querySelector(
-      '[dev-target="file-name"]'
+      '[dev-target="file-name"]',
     ) as HTMLElement;
     if (fileName) fileName.textContent = file.name;
 
     const removeButton = fileItem.querySelector(
-      '[dev-target="file-remove-button"]'
+      '[dev-target="file-remove-button"]',
     ) as HTMLElement;
     if (removeButton) {
       removeButton.addEventListener("click", (e) =>
@@ -925,8 +926,8 @@ class UnifiedJobApplicationSystem {
           file,
           fileInput,
           e.target as HTMLElement,
-          sectionUploadSection
-        )
+          sectionUploadSection,
+        ),
       );
     }
 
@@ -937,10 +938,10 @@ class UnifiedJobApplicationSystem {
     userFile: File,
     fileInput: HTMLInputElement,
     element: HTMLElement,
-    sectionUploadSection: HTMLElement
+    sectionUploadSection: HTMLElement,
   ): void {
     const uploadedFileElement = element.closest(
-      ".uploaded-file"
+      ".uploaded-file",
     ) as HTMLElement;
     uploadedFileElement?.remove();
 
@@ -953,7 +954,7 @@ class UnifiedJobApplicationSystem {
       this.uploadedCoverLetterFile = null;
     } else {
       this.uploadedAdditionalFiles = this.uploadedAdditionalFiles.filter(
-        (file) => file !== userFile
+        (file) => file !== userFile,
       );
     }
   }
@@ -996,7 +997,7 @@ class UnifiedJobApplicationSystem {
       desiredAdditionalCompensation:
         (
           document.getElementById(
-            "Desired-Additional-Compensation"
+            "Desired-Additional-Compensation",
           ) as HTMLInputElement
         )?.value || "",
     };
@@ -1012,7 +1013,7 @@ class UnifiedJobApplicationSystem {
 
     // Mark invalid fields
     const requiredFields = this.formElements.form?.querySelectorAll(
-      "[required]"
+      "[required]",
     ) as NodeListOf<HTMLInputElement>;
     requiredFields?.forEach((field) => {
       if (!field.value.trim()) {
@@ -1034,7 +1035,7 @@ class UnifiedJobApplicationSystem {
 
     if (this.currentJob?.is_active === false) {
       this.showError(
-        "Ops! This listing has been closed and is no longer accepting applications."
+        "Ops! This listing has been closed and is no longer accepting applications.",
       );
       return;
     }
@@ -1068,7 +1069,7 @@ class UnifiedJobApplicationSystem {
       formDataObj.append("desiredSalary", data.desiredSalary);
       formDataObj.append(
         "desiredAdditionalCompensation",
-        data.desiredAdditionalCompensation
+        data.desiredAdditionalCompensation,
       );
 
       if (data.resume) {
@@ -1090,11 +1091,11 @@ class UnifiedJobApplicationSystem {
       });
 
       const response = await fetch(
-        `${this.API_BASE_URL}/jobs/${this.jobId}/apply`,
+        `${getChalonerApiBaseUrl()}/jobs/${this.jobId}/apply`,
         {
           method: "POST",
           body: formDataObj,
-        }
+        },
       );
 
       const result: ApiResponse = await response.json();
@@ -1111,7 +1112,7 @@ class UnifiedJobApplicationSystem {
       this.showError(
         error instanceof Error
           ? error.message
-          : "Failed to submit application. Please try again."
+          : "Failed to submit application. Please try again.",
       );
     } finally {
       this.setLoadingState(false);
@@ -1176,14 +1177,17 @@ class UnifiedJobApplicationSystem {
     container.classList.remove("hide");
   }
 
-  private collectCustomQuestionAnswers(): Array<{ key: string; value: string }> {
+  private collectCustomQuestionAnswers(): Array<{
+    key: string;
+    value: string;
+  }> {
     const container = this.jobElements.customQuestionsContainer;
     if (!container) return [];
 
     return Array.from(
       container.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
-        "input[name^='loxo_question_'], select[name^='loxo_question_']"
-      )
+        "input[name^='loxo_question_'], select[name^='loxo_question_']",
+      ),
     )
       .map((field) => ({
         key: field.name.replace("loxo_question_", ""),
@@ -1196,7 +1200,7 @@ class UnifiedJobApplicationSystem {
     this.formElements.form?.reset();
     this.formElements.fileInputSections.forEach((section) => {
       const uploadSection = section.querySelector<HTMLElement>(
-        ".roles-application-form_file_contain"
+        ".roles-application-form_file_contain",
       );
       if (uploadSection) {
         uploadSection.classList.remove("hide");
@@ -1236,7 +1240,7 @@ class UnifiedJobApplicationSystem {
     if (this.formElements.phoneInput) {
       this.formElements.phoneInput.classList.remove("error");
       const phoneContainer = this.formElements.phoneInput.closest(
-        ".roles-application-form_input_wrap"
+        ".roles-application-form_input_wrap",
       );
       phoneContainer?.classList.remove("error");
     }
@@ -1441,7 +1445,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (error) {
     console.error(
       "Failed to initialize Unified Job Application System:",
-      error
+      error,
     );
   }
 });
