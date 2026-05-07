@@ -1034,7 +1034,7 @@ class UnifiedJobApplicationSystem {
 
     if (this.currentJob?.is_active === false) {
       this.showError(
-        "This listing is closed and cannot accept applications. Please view active roles."
+        "Ops! This listing has been closed and is no longer accepting applications."
       );
       return;
     }
