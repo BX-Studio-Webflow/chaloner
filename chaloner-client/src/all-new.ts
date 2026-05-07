@@ -746,7 +746,7 @@ class UnifiedJobApplicationSystem {
     if (this.jobElements.closedStateMessage) {
       if (this.currentJob.is_active === false) {
         this.jobElements.closedStateMessage.textContent =
-          "This listing is closed - view active roles.";
+          "Ops! This listing has been closed and is no longer accepting applications.";
         this.jobElements.closedStateMessage.classList.remove("hide");
       } else {
         this.jobElements.closedStateMessage.classList.add("hide");
